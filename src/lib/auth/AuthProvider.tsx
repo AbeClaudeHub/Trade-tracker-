@@ -25,6 +25,8 @@ import {
   isFirebaseConfigured,
 } from "@/lib/firebase/client";
 import type { UserProfile } from "@/domain/types";
+import { isDemoMode, disableDemo } from "@/lib/demo/isDemo";
+import { demo, DEMO_USER } from "@/lib/demo/store";
 
 interface AuthContextValue {
   user: User | null;
@@ -67,6 +69,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Demo mode: bypass Firebase entirely with a seeded user + profile.
+    if (isDemoMode()) {
+      setUser({ uid: DEMO_USER.uid, email: DEMO_USER.email, displayName: DEMO_USER.displayName } as unknown as User);
+      setProfile(demo().profile);
+      setLoading(false);
+      return;
+    }
     if (!isFirebaseConfigured) {
       setLoading(false);
       return;
@@ -89,6 +98,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshProfile = async () => {
+    if (isDemoMode()) {
+      setProfile({ ...demo().profile });
+      return;
+    }
     if (!user) return;
     const snap = await getDoc(doc(getDb(), "users", user.uid));
     if (snap.exists()) setProfile(snap.data() as UserProfile);
@@ -99,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       profile,
       loading,
-      configured: isFirebaseConfigured,
+      configured: isFirebaseConfigured || isDemoMode(),
       async signUpWithEmail(email, password, name) {
         const auth = getFirebaseAuth();
         const cred = await createUserWithEmailAndPassword(auth, email, password);
@@ -114,6 +127,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(await ensureProfile(cred.user));
       },
       async signOut() {
+        if (isDemoMode()) {
+          disableDemo();
+          setUser(null);
+          setProfile(null);
+          return;
+        }
         await fbSignOut(getFirebaseAuth());
       },
       refreshProfile,

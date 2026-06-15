@@ -15,6 +15,8 @@ import type {
 } from "@/domain/types";
 import { computeDayScore, hasViolation, honoredRate } from "@/domain/behavior/scoring";
 import { todayKey } from "@/lib/dates";
+import { isDemoMode } from "@/lib/demo/isDemo";
+import { demo } from "@/lib/demo/store";
 import { paths } from "./collections";
 
 function blankEntry(uid: string, date: string): DailyEntry {
@@ -35,6 +37,7 @@ export async function getDaily(
   uid: string,
   date: string = todayKey(),
 ): Promise<DailyEntry | null> {
+  if (isDemoMode()) return demo().dailies.get(date) ?? null;
   const snap = await getDoc(paths.daily(uid, date));
   return snap.exists() ? (snap.data() as DailyEntry) : null;
 }
@@ -62,6 +65,10 @@ export async function postCommitments(
     preMarket,
     committedAt: existing.committedAt ?? new Date().toISOString(),
   });
+  if (isDemoMode()) {
+    demo().dailies.set(date, next);
+    return next;
+  }
   await setDoc(paths.daily(uid, date), next);
   return next;
 }
@@ -86,12 +93,21 @@ export async function postReview(
     postMarket,
     reviewedAt: new Date().toISOString(),
   });
+  if (isDemoMode()) {
+    demo().dailies.set(date, next);
+    return next;
+  }
   await setDoc(paths.daily(uid, date), next);
   return next;
 }
 
 /** List entries on/after `sinceDate`, oldest first. */
 export async function listDailies(uid: string, sinceDate: string): Promise<DailyEntry[]> {
+  if (isDemoMode()) {
+    return [...demo().dailies.values()]
+      .filter((e) => e.date >= sinceDate)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }
   const q = query(
     paths.dailies(uid),
     where("date", ">=", sinceDate),

@@ -10,6 +10,8 @@ import {
 import type { AssessmentResponses, AssessmentResult } from "@/domain/types";
 import { scoreAssessment } from "@/domain/assessment/scoring";
 import { resolveArchetype } from "@/domain/archetypes/engine";
+import { isDemoMode } from "@/lib/demo/isDemo";
+import { demo } from "@/lib/demo/store";
 import { paths } from "./collections";
 
 /**
@@ -34,6 +36,12 @@ export async function submitAssessment(
     secondaryArchetypeId: secondary,
   };
 
+  if (isDemoMode()) {
+    demo().assessment = result;
+    demo().profile.archetypeId = primary;
+    return result;
+  }
+
   await setDoc(paths.assessment(uid, id), result);
 
   // The first assessment also sets the immutable baseline archetype — the
@@ -53,6 +61,7 @@ export async function submitAssessment(
 export async function getLatestAssessment(
   uid: string,
 ): Promise<AssessmentResult | null> {
+  if (isDemoMode()) return demo().assessment;
   const q = query(paths.assessments(uid), orderBy("completedAt", "desc"), limit(1));
   const snap = await getDocs(q);
   const first = snap.docs[0];
@@ -65,6 +74,10 @@ export async function saveInterpretation(
   assessmentId: string,
   interpretation: string,
 ): Promise<void> {
+  if (isDemoMode()) {
+    demo().assessment.interpretation = interpretation;
+    return;
+  }
   await updateDoc(paths.assessment(uid, assessmentId), { interpretation });
 }
 

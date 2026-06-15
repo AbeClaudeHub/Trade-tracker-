@@ -55,18 +55,18 @@ export default function LandingPage() {
           because they can&apos;t execute what they already know. Niyyah OS is
           built for that gap — discipline, self-awareness, and accountability.
         </p>
-        <div className="mt-9 flex items-center justify-center gap-3">
-          <Link href="/signup">
-            <Button size="lg">Take the assessment</Button>
+        <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+          <Link href="/demo">
+            <Button size="lg">Explore the live demo</Button>
           </Link>
-          <Link href="/login">
+          <Link href="/signup">
             <Button variant="secondary" size="lg">
-              I have an account
+              Take the assessment
             </Button>
           </Link>
         </div>
         <p className="mt-5 text-sm text-faint">
-          No charts. No signals. No PnL tracking. Just behavior.
+          The demo needs no sign-up. No charts. No signals. No PnL. Just behavior.
         </p>
       </section>
 

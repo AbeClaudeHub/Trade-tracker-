@@ -7,6 +7,8 @@ import {
   disciplineScore,
 } from "@/domain/behavior/scoring";
 import { nafsControlIndex } from "@/domain/nafs/analytics";
+import { isDemoMode } from "@/lib/demo/isDemo";
+import { demo } from "@/lib/demo/store";
 import { paths } from "./collections";
 
 /** Compute the user's live behavioral indices from history. */
@@ -35,5 +37,9 @@ export async function persistIndices(
   uid: string,
   indices: BehaviorIndices,
 ): Promise<void> {
+  if (isDemoMode()) {
+    demo().profile.indices = indices;
+    return;
+  }
   await updateDoc(paths.user(uid), { indices });
 }

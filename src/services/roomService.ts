@@ -26,6 +26,8 @@ import type {
   UserProfile,
 } from "@/domain/types";
 import { countViolations } from "@/domain/behavior/scoring";
+import { isDemoMode } from "@/lib/demo/isDemo";
+import { demo } from "@/lib/demo/store";
 import { paths } from "./collections";
 
 const ROOM_CAP = 7;
@@ -40,6 +42,7 @@ export async function createRoom(
   profile: UserProfile,
   name: string,
 ): Promise<Room> {
+  if (isDemoMode()) return demo().room; // demo user already has a room
   const inviteCode = makeInviteCode();
   const room: Omit<Room, "id"> = {
     name: name.trim() || "Accountability Room",
@@ -77,6 +80,7 @@ function memberDoc(
 }
 
 export async function joinByCode(profile: UserProfile, code: string): Promise<Room> {
+  if (isDemoMode()) return demo().room;
   const q = query(paths.rooms(), where("inviteCode", "==", code.trim().toUpperCase()), limit(1));
   const snap = await getDocs(q);
   const first = snap.docs[0];
@@ -94,6 +98,7 @@ export async function joinByCode(profile: UserProfile, code: string): Promise<Ro
 }
 
 export async function leaveRoom(roomId: string, uid: string): Promise<void> {
+  if (isDemoMode()) return;
   await updateDoc(paths.room(roomId), { memberCount: increment(-1) });
   await updateDoc(paths.user(uid), { roomIds: arrayRemove(roomId) });
   // Member doc is left in place but excluded by membership checks; a Cloud
@@ -101,11 +106,13 @@ export async function leaveRoom(roomId: string, uid: string): Promise<void> {
 }
 
 export async function getRoom(roomId: string): Promise<Room | null> {
+  if (isDemoMode()) return roomId === demo().room.id ? demo().room : null;
   const snap = await getDoc(paths.room(roomId));
   return snap.exists() ? { ...(snap.data() as Room), id: snap.id } : null;
 }
 
 export async function getMembers(roomId: string): Promise<RoomMember[]> {
+  if (isDemoMode()) return demo().members;
   const snap = await getDocs(paths.members(roomId));
   return snap.docs.map((d) => d.data() as RoomMember);
 }
@@ -136,6 +143,31 @@ export async function syncBoardRows(args: {
   topNafs: NafsCategory | null;
 }): Promise<void> {
   const { profile, date, entry, indices, trend, topNafs } = args;
+
+  if (isDemoMode()) {
+    const row: BoardRow = {
+      uid: profile.uid,
+      date,
+      displayName: profile.displayName,
+      state: deriveState(entry),
+      committedCount: entry?.commitments.length ?? 0,
+      reviewed: Boolean(entry?.reviewedAt),
+      honoredRate: entry?.honoredRate ?? 0,
+      dayScore: entry?.dayScore ?? 0,
+      streak: indices.currentStreak,
+      trend,
+      topNafs,
+      updatedAt: new Date().toISOString(),
+    };
+    demo().board.set(`${date}:${profile.uid}`, row);
+    const me = demo().members.find((m) => m.uid === profile.uid);
+    if (me) {
+      me.streak = indices.currentStreak;
+      me.lastActiveDate = date;
+    }
+    return;
+  }
+
   const members = await Promise.all(
     profile.roomIds.map((rid) => getDoc(paths.member(rid, profile.uid))),
   );
@@ -174,6 +206,11 @@ export async function syncBoardRows(args: {
 }
 
 export async function getBoard(roomId: string, date: string): Promise<BoardRow[]> {
+  if (isDemoMode()) {
+    return [...demo().board.entries()]
+      .filter(([k]) => k.startsWith(`${date}:`))
+      .map(([, v]) => v);
+  }
   const snap = await getDocs(paths.boardRows(roomId, date));
   return snap.docs.map((d) => d.data() as BoardRow);
 }
@@ -187,6 +224,19 @@ export async function sendNudge(
   kind: NudgeKind,
   date: string,
 ): Promise<void> {
+  if (isDemoMode()) {
+    demo().feed.unshift({
+      id: `demo-feed-${Date.now()}`,
+      roomId,
+      type: "nudge",
+      fromUid,
+      toUid,
+      date,
+      nudgeKind: kind,
+      createdAt: new Date().toISOString(),
+    });
+    return;
+  }
   await addDoc(paths.feed(roomId), {
     roomId,
     type: "nudge",
@@ -204,6 +254,18 @@ export async function shareReflectionToRoom(
   date: string,
   excerpt: string,
 ): Promise<void> {
+  if (isDemoMode()) {
+    demo().feed.unshift({
+      id: `demo-feed-${Date.now()}`,
+      roomId,
+      type: "sharedReflection",
+      fromUid,
+      date,
+      text: excerpt,
+      createdAt: new Date().toISOString(),
+    });
+    return;
+  }
   await addDoc(paths.feed(roomId), {
     roomId,
     type: "sharedReflection",
@@ -215,6 +277,11 @@ export async function shareReflectionToRoom(
 }
 
 export async function listFeed(roomId: string, max = 40): Promise<RoomFeedEvent[]> {
+  if (isDemoMode()) {
+    return [...demo().feed]
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, max);
+  }
   const q = query(paths.feed(roomId), orderBy("createdAt", "desc"), limit(max));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ ...(d.data() as RoomFeedEvent), id: d.id }));
