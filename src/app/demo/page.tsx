@@ -11,7 +11,7 @@ export default function DemoEntry() {
   useEffect(() => {
     enableDemo();
     // Full reload so providers re-read the demo flag from the start.
-    window.location.replace("/dashboard");
+    window.location.replace("/report");
   }, [router]);
 
   return (

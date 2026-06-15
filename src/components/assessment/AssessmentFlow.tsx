@@ -8,7 +8,7 @@ import {
   LIKERT_LABELS,
 } from "@/domain/assessment/questions";
 import { DIMENSION_LABELS, type LikertValue } from "@/domain/types";
-import { submitAssessment } from "@/services/assessmentService";
+import { generateAndSaveReport } from "@/services/reportService";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
@@ -44,10 +44,10 @@ export function AssessmentFlow() {
     setSubmitting(true);
     setError(null);
     try {
-      await submitAssessment(user.uid, answers);
-      router.push("/archetype?fresh=1");
+      await generateAndSaveReport(user.uid, answers);
+      router.push("/report?fresh=1");
     } catch (e) {
-      setError((e as Error).message ?? "Could not save your assessment.");
+      setError((e as Error).message ?? "Could not generate your report.");
       setSubmitting(false);
     }
   }
@@ -122,7 +122,7 @@ export function AssessmentFlow() {
 
         {isLast ? (
           <Button onClick={finish} disabled={!allAnswered || submitting}>
-            {submitting ? "Reading your profile…" : "See my archetype"}
+            {submitting ? "Generating your report…" : "Reveal my report"}
           </Button>
         ) : (
           <Button

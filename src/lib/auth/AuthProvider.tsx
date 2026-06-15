@@ -57,7 +57,7 @@ async function ensureProfile(user: User): Promise<UserProfile> {
     assessmentCompleted: false,
     archetypeId: null,
     baselineArchetypeId: null,
-    roomIds: [],
+    entitlement: { unlocked: false, codeRedeemed: null, redeemedAt: null },
   };
   await setDoc(ref, { ...profile, _createdAt: serverTimestamp() });
   return profile;

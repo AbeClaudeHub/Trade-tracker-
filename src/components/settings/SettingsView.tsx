@@ -5,6 +5,7 @@ import Link from "next/link";
 import { updateDoc } from "firebase/firestore";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { paths } from "@/services/collections";
+import { isDemoMode } from "@/lib/demo/isDemo";
 import { Page, PageHeader } from "@/components/layout/Page";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -16,13 +17,13 @@ export function SettingsView() {
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  const unlocked = Boolean(profile?.entitlement.unlocked);
+
   async function handleSave() {
-    if (!user) return;
+    if (!user || isDemoMode()) return;
     setBusy(true);
     setSaved(false);
-    await updateDoc(paths.user(user.uid), {
-      displayName: name.trim() || "Trader",
-    });
+    await updateDoc(paths.user(user.uid), { displayName: name.trim() || "Trader" });
     await refreshProfile();
     setBusy(false);
     setSaved(true);
@@ -35,10 +36,7 @@ export function SettingsView() {
       <Card className="mb-6">
         <FieldLabel htmlFor="name">Display name</FieldLabel>
         <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
-        <p className="mt-2 text-xs text-faint">
-          This is what your accountability room sees. Signed in as{" "}
-          {profile?.email ?? user?.email}.
-        </p>
+        <p className="mt-2 text-xs text-faint">Signed in as {profile?.email ?? user?.email}.</p>
         <div className="mt-4 flex items-center gap-3">
           <Button onClick={handleSave} disabled={busy}>
             {busy ? "Saving…" : "Save changes"}
@@ -48,22 +46,28 @@ export function SettingsView() {
       </Card>
 
       <Card className="mb-6">
-        <h3 className="font-serif text-lg text-ink">Room visibility</h3>
-        <p className="mt-1 text-sm text-muted">
-          Per-room sharing of your score, nafs battles, and reflections is managed
-          inside each room. You control exactly what each room can see — and PnL is
-          never tracked anywhere, so it can never be shared.
-        </p>
-        <Link href="/rooms" className="mt-4 inline-block">
-          <Button variant="secondary">Manage rooms</Button>
-        </Link>
+        <h3 className="font-serif text-lg text-ink">Access</h3>
+        {unlocked ? (
+          <p className="mt-1 text-sm text-muted">
+            Your full report is unlocked{profile?.entitlement.codeRedeemed ? ` (code ${profile.entitlement.codeRedeemed})` : ""}.
+          </p>
+        ) : (
+          <>
+            <p className="mt-1 text-sm text-muted">
+              Your report is locked. Redeem your one-time access code to unlock it.
+            </p>
+            <Link href="/unlock" className="mt-4 inline-block">
+              <Button variant="secondary">Enter access code</Button>
+            </Link>
+          </>
+        )}
       </Card>
 
       <Card>
         <h3 className="font-serif text-lg text-ink">Reassess</h3>
         <p className="mt-1 text-sm text-muted">
-          Behavior changes. Retake the assessment to see how far you&apos;ve moved
-          from your starting archetype.
+          Retake the assessment to regenerate your diagnosis — useful after a
+          stretch of focused work to see how your profile has shifted.
         </p>
         <Link href="/assessment" className="mt-4 inline-block">
           <Button variant="secondary">Retake the assessment</Button>

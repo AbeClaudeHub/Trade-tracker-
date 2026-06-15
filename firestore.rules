@@ -1,71 +1,29 @@
 rules_version = '2';
 
-// Niyyah OS — Firestore security rules (v2).
-// Behavioral data is private to its owner. Room data is visible only to room
-// members, and each member writes their own consent-filtered board row. PnL is
-// never modelled, so it can never leak.
+// Niyyah OS — Firestore security rules (v3).
+// A user owns their profile and their single generated report. License codes
+// are issued by the community owner and redeemed once.
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isSignedIn() {
-      return request.auth != null;
-    }
-    function isOwner(uid) {
-      return isSignedIn() && request.auth.uid == uid;
-    }
-    function isMember(roomId) {
-      return isSignedIn()
-        && exists(/databases/$(database)/documents/rooms/$(roomId)/members/$(request.auth.uid));
-    }
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
 
-    // ── User-owned data ──────────────────────────────────────────────────────
     match /users/{uid} {
       allow read, write: if isOwner(uid);
-
-      match /assessments/{doc}        { allow read, write: if isOwner(uid); }
-      match /dailies/{doc}            { allow read, write: if isOwner(uid); }
-      match /nafsIncidents/{doc}      { allow read, write: if isOwner(uid); }
-      match /reflections/{doc}        { allow read, write: if isOwner(uid); }
-      match /interventions/{doc}      { allow read, write: if isOwner(uid); }
-      match /identitySnapshots/{doc}  { allow read, write: if isOwner(uid); }
+      match /report/{doc} { allow read, write: if isOwner(uid); }
     }
 
-    // ── Rooms ──────────────────────────────────────────────────────────────
-    match /rooms/{roomId} {
-      // Signed-in users may read rooms (needed to join by invite code) and
-      // create rooms / update membership counts.
+    match /licenseCodes/{code} {
+      // Anyone signed in may check a code to redeem it.
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update: if isSignedIn();
-
-      match /members/{uid} {
-        allow read: if isMember(roomId) || isOwner(uid);
-        allow create, update, delete: if isOwner(uid);
-      }
-
-      match /board/{date}/rows/{uid} {
-        allow read: if isMember(roomId);
-        allow create, update: if isOwner(uid);
-      }
-
-      match /feed/{eventId} {
-        allow read: if isMember(roomId);
-        allow create: if isMember(roomId)
-          && request.resource.data.fromUid == request.auth.uid;
-      }
-
-      match /rollups/{doc} {
-        allow read: if isMember(roomId);
-        // Written by Cloud Functions (admin SDK bypasses rules).
-        allow write: if false;
-      }
-
-      match /partnerReviews/{doc} {
-        allow read: if isMember(roomId);
-        allow create: if isMember(roomId)
-          && request.resource.data.fromUid == request.auth.uid;
-      }
+      // A code can only be claimed if unused, and only by the claimer.
+      allow update: if isSignedIn()
+        && resource.data.used == false
+        && request.resource.data.usedBy == request.auth.uid;
+      // Codes are seeded by the owner (Firebase console / admin); no client create/delete.
+      allow create, delete: if false;
     }
   }
 }

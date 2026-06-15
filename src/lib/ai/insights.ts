@@ -1,89 +1,67 @@
 import {
   DIMENSION_LABELS,
-  type Archetype,
-  type DetectedPattern,
-  type DimensionScores,
-  type WeeklyReflection,
+  NAFS_LABELS,
+  type Report,
 } from "@/domain/types";
 import { rankDimensions } from "@/domain/assessment/scoring";
+import { ARCHETYPES } from "@/domain/archetypes/data";
 import { generate, isAiConfigured } from "./anthropic";
 
-function scoreLines(scores: DimensionScores): string {
-  return rankDimensions(scores)
-    .map((d) => `- ${DIMENSION_LABELS[d.dimension]}: ${d.score}/100`)
-    .join("\n");
+export interface ReportNarrative {
+  interpretation: string;
+  nafsNarrative: string;
+  blueprintIntro: string;
 }
 
 /**
- * Interpret a completed assessment for a specific archetype.
- * Falls back to a composed, deterministic interpretation if AI is unavailable.
+ * Layer AI-personalised prose onto a generated report. Always returns a full
+ * narrative — if AI is unavailable, it composes a strong deterministic version
+ * from the archetype content so the product is never empty.
  */
-export async function interpretAssessment(
-  archetype: Archetype,
-  scores: DimensionScores,
-): Promise<string> {
+export async function generateReportNarrative(report: Report): Promise<ReportNarrative> {
+  const archetype = ARCHETYPES[report.archetypeId];
+  const weakest = rankDimensions(report.dimensionScores).slice(0, 2);
+  const weakLabels = weakest.map((d) => DIMENSION_LABELS[d.dimension].toLowerCase());
+  const dominant = NAFS_LABELS[report.dominantNafs];
+
   if (!isAiConfigured) {
-    const weakest = rankDimensions(scores).slice(0, 2);
-    return [
-      `Your profile points most strongly to ${archetype.name}. ${archetype.tagline}`,
-      "",
-      `Your behavior leans hardest on ${weakest
-        .map((d) => DIMENSION_LABELS[d.dimension].toLowerCase())
-        .join(" and ")}. ${archetype.description}`,
-      "",
-      `Start here: ${archetype.recommendations[0]}`,
-    ].join("\n");
+    return {
+      interpretation: [
+        `Your profile points most clearly to ${archetype.name}. ${archetype.tagline}`,
+        `Your behavior leans hardest on ${weakLabels.join(" and ")}. ${archetype.description}`,
+        `Begin here: ${archetype.recommendations[0]}`,
+      ].join("\n\n"),
+      nafsNarrative: `Your dominant inner battle is ${dominant.toLowerCase()}. ${archetype.rootCauses[0]} The trade is the symptom; this is the source.`,
+      blueprintIntro: `Over the next 30 days you'll move from ${archetype.transformation.signatureBehavior.toLowerCase()} toward ${archetype.transformation.replacementBehavior.toLowerCase()} — one keystone commitment at a time, reported daily in your room.`,
+    };
   }
 
-  const prompt = `A trader completed the behavioral assessment. Their primary archetype is "${archetype.name}" — ${archetype.tagline}
+  const base = `Trader archetype: ${archetype.name} — ${archetype.tagline}
+Weakest behavioral dimensions: ${weakLabels.join(", ")}.
+Dominant nafs (inner driver): ${dominant}.
+Signature self-sabotage loop: ${archetype.selfSabotageLoop.join(" → ")}.`;
 
-Dimension scores (0 = unhealthy behavior, 100 = healthy):
-${scoreLines(scores)}
+  const [interpretation, nafsNarrative, blueprintIntro] = await Promise.all([
+    generate({
+      maxTokens: 480,
+      prompt: `${base}
 
-Write a personal, second-person interpretation (3 short paragraphs, ~140 words total). Help them recognise themselves. Connect their two weakest dimensions to the archetype. End with the single most important behavioral shift to focus on first. Do not give trading advice.`;
+Write a personal, second-person interpretation (3 short paragraphs, ~150 words). Make them feel seen — connect their weakest dimensions and their dominant nafs to the archetype and the loop. End with the single most important shift to focus on. No trading advice.`,
+    }),
+    generate({
+      maxTokens: 220,
+      prompt: `${base}
 
-  return generate({ prompt, maxTokens: 500 });
-}
+In 2-3 sentences, explain how their dominant nafs (${dominant}) is the root cause beneath their trading mistakes. Calm, direct, perceptive. No trading advice.`,
+    }),
+    generate({
+      maxTokens: 220,
+      prompt: `${base}
+Keystone commitment for 30 days: "${archetype.transformation.keystoneCommitment}"
 
-/** Summarise a week of reflection answers into a short, honest paragraph. */
-export async function summarizeWeek(
-  reflection: WeeklyReflection,
-  context: { score: number; violations: number; streak: number },
-): Promise<string> {
-  if (!isAiConfigured) {
-    return `This week your behavior score was ${context.score} with ${context.violations} violation${
-      context.violations === 1 ? "" : "s"
-    }. You named that "${reflection.repeated || "—"}" repeated, and you intend to change "${
-      reflection.nextWeek || "—"
-    }". Hold yourself to that one change.`;
-  }
+Write a 2-3 sentence introduction to their personal 30-day discipline blueprint that motivates without hype. No trading advice.`,
+    }),
+  ]);
 
-  const prompt = `A trader wrote their weekly reflection. Behavior score: ${context.score}, violations: ${context.violations}, current streak: ${context.streak} days.
-
-What improved: ${reflection.improved || "(blank)"}
-What repeated: ${reflection.repeated || "(blank)"}
-What triggered mistakes: ${reflection.triggers || "(blank)"}
-What they'll change: ${reflection.nextWeek || "(blank)"}
-
-Write a 3-4 sentence summary that reflects their growth honestly, names the pattern they should watch, and affirms the one change they committed to. Calm and direct. No trading advice.`;
-
-  return generate({ prompt, maxTokens: 320 });
-}
-
-/** Turn detected patterns into one cohesive, gently confronting narrative. */
-export async function narratePatterns(
-  patterns: DetectedPattern[],
-): Promise<string> {
-  if (patterns.length === 0) return "";
-  if (!isAiConfigured) {
-    return patterns.map((p) => `${p.title} ${p.detail}`).join("\n\n");
-  }
-
-  const prompt = `These behavioral patterns were detected in a trader's history:
-
-${patterns.map((p) => `- ${p.title} ${p.detail}`).join("\n")}
-
-Write a short, cohesive reflection (2-3 sentences) that connects these patterns into a single insight about how this trader sabotages themselves. Make them feel seen, not judged. No trading advice.`;
-
-  return generate({ prompt, maxTokens: 240 });
+  return { interpretation, nafsNarrative, blueprintIntro };
 }

@@ -9,14 +9,10 @@ import { Icon, type IconName } from "./icons";
 import { cn } from "@/lib/utils";
 
 const NAV: { href: string; label: string; icon: IconName; primary?: boolean }[] = [
-  { href: "/dashboard", label: "Dashboard", icon: "dashboard", primary: true },
-  { href: "/rooms", label: "Rooms", icon: "partner", primary: true },
-  { href: "/daily", label: "Daily", icon: "daily", primary: true },
-  { href: "/nafs", label: "Nafs", icon: "nafs", primary: true },
-  { href: "/patterns", label: "Patterns", icon: "patterns", primary: true },
-  { href: "/reflection", label: "Reflect", icon: "reflection" },
-  { href: "/archetype", label: "Archetype", icon: "archetype" },
-  { href: "/settings", label: "Settings", icon: "settings" },
+  { href: "/report", label: "My Report", icon: "archetype", primary: true },
+  { href: "/assessment", label: "Reassess", icon: "daily", primary: true },
+  { href: "/unlock", label: "Unlock", icon: "nafs", primary: true },
+  { href: "/settings", label: "Settings", icon: "settings", primary: true },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -58,8 +54,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen lg:flex">
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-line bg-raised px-4 py-6 lg:flex">
-        <Link href="/dashboard" className="px-2">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-line bg-raised px-4 py-6 lg:flex print:!hidden">
+        <Link href="/report" className="px-2">
           <Logo />
         </Link>
         <nav className="mt-8 flex-1 space-y-1">
@@ -91,8 +87,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Mobile top bar */}
-      <div className="flex items-center justify-between border-b border-line bg-raised px-5 py-4 lg:hidden">
-        <Link href="/dashboard">
+      <div className="flex items-center justify-between border-b border-line bg-raised px-5 py-4 lg:hidden print:hidden">
+        <Link href="/report">
           <Logo />
         </Link>
         <button
@@ -107,7 +103,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       <main className="min-w-0 flex-1 pb-24 lg:pb-0">{children}</main>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-line bg-surface/95 backdrop-blur lg:hidden">
+      <nav
+        className="fixed inset-x-0 bottom-0 z-20 grid border-t border-line bg-surface/95 backdrop-blur lg:hidden print:hidden"
+        style={{ gridTemplateColumns: `repeat(${primary.length}, minmax(0, 1fr))` }}
+      >
         {primary.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
           return (

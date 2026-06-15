@@ -44,7 +44,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         router.push("/assessment");
       } else {
         await signInWithEmail(email.trim().toLowerCase(), password);
-        router.push("/dashboard");
+        router.push("/report");
       }
     } catch (err) {
       setError(friendlyError(err));
@@ -57,7 +57,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     setBusy(true);
     try {
       await signInWithGoogle();
-      router.push(isSignup ? "/assessment" : "/dashboard");
+      router.push(isSignup ? "/assessment" : "/report");
     } catch (err) {
       setError(friendlyError(err));
       setBusy(false);

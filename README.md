@@ -1,76 +1,85 @@
 # Niyyah OS
 
-**Trade your intention, not your impulse.**
+**A personalized behavioral diagnosis & transformation product for traders.**
 
-Niyyah OS is a **behavioral transformation platform for traders** — not a trading
-course, journal, signals service, or prop dashboard. Most traders don't have an
-information problem; they have an *execution* problem. Niyyah OS exists to help
-traders execute what they already know by building discipline, self-awareness,
-and accountability.
+Niyyah OS is a **premium, one-time-purchase** product sold to traders inside
+existing **Discord accountability communities**. It does not replace those
+rooms or track behavior over time — the rooms already create accountability and
+visibility. Niyyah OS does the thing the rooms can't: it **explains** the
+trader's behavior and gives a concrete path to change.
 
 > _Niyyah_ (نيّة) — Arabic for **intention**.
 
-**Behavior is the product.** There is no PnL, no win rate, no charts. The only
-metric that matters is whether your behavioral violations fall over time.
+> The rooms **expose** behavior. Niyyah OS **explains** it.
+> The rooms create **visibility**. Niyyah OS creates **understanding** and **direction**.
+
+The customer already knows how to trade. He still revenge trades, overtrades,
+moves stops, and breaks his rules. He doesn't need information — he needs
+self-awareness and a plan.
 
 ---
 
-## The product loop
+## What the product delivers
 
-1. **Assess** — a 54-question behavioral assessment across nine dimensions.
-2. **Recognise** — receive your trader archetype and a deeply personal report.
-3. **Show up** — a frictionless pre- and post-market daily check-in (< 5 min).
-4. **Score** — a behavior score built only from disciplined acts and violations.
-5. **Reflect** — a weekly reflection that becomes a growth timeline.
-6. **See yourself** — automatic pattern detection exposes hidden loops.
-7. **Stay accountable** — one accountability partner, consent-gated visibility.
+One deep assessment → one rich personal report → one 30-day plan:
+
+1. **Behavioral Assessment** — 54 items across nine dimensions.
+2. **Trader Archetype** — 1 of 8 (Chaser, Avenger, Gambler, Hesitator,
+   Perfectionist, Validation Seeker, Rule Breaker, Overconfident).
+3. **Identity Report** — strengths, blind spots, emotional triggers, common rule
+   violations, accountability weaknesses, and root causes.
+4. **Nafs Analysis** — the dominant inner driver (greed, ego, fear, impatience,
+   attachment, validation-seeking, laziness, overconfidence) beneath the mistakes.
+5. **Self-Sabotage Loop Mapping** — the exact cycles keeping the trader stuck.
+6. **Accountability Recommendations** — a paste-ready daily Discord check-in
+   script + a "room briefing card" + what to commit to and monitor.
+7. **30-Day Discipline Blueprint** — a personal, week-by-week plan run *through*
+   the Discord room.
+
+The report is rendered on the web, **exportable to PDF** (print), with
+copy-to-clipboard scripts for Discord. AI (Claude) personalises the prose, with
+a deterministic fallback so reports are never empty.
 
 ---
 
-## Modules
+## How it's sold
 
-| Module | Where it lives |
-| --- | --- |
-| Trader Identity Assessment | `src/domain/assessment`, `src/components/assessment` |
-| Trader Archetype Engine | `src/domain/archetypes`, `src/components/archetype` |
-| Daily Accountability | `src/components/daily`, `src/services/dailyService.ts` |
-| Behavioral Score Engine | `src/domain/behavior` |
-| Pattern Detection | `src/domain/patterns`, `src/components/patterns` |
-| Weekly Reflection | `src/components/reflection`, `src/services/reflectionService.ts` |
-| Accountability Partner | `src/components/partner`, `src/services/partnerService.ts` |
-| Dashboard | `src/components/dashboard` |
+A **one-time purchase**, gated by a **license code** the community owner issues
+and distributes. After sign-in, a trader redeems the code at `/unlock` to view
+the full report. (Codes live in the `licenseCodes` Firestore collection.)
 
-The nine behavioral dimensions: discipline, patience, risk behavior, ego, fear,
-impulsiveness, consistency, accountability, and emotional regulation.
+---
 
-The eight archetypes: The Chaser, The Gambler, The Avenger, The Hesitator, The
-Perfectionist, The Overconfident Trader, The Validation Seeker, The Rule Breaker.
+## Try it with no sign-up
+
+- Set `NEXT_PUBLIC_DEMO=1` to make the whole deployment a sample report, **or**
+- visit **`/demo`** on any deployment to enable demo mode on that device.
+
+The landing page's **"Explore the live demo"** button drops straight into a
+fully-populated sample report (The Chaser).
 
 ---
 
 ## Tech stack
 
 - **Next.js (App Router)** + **TypeScript** + **Tailwind CSS**
-- **Firebase**: Authentication (Email + Google) and Firestore
-- **Anthropic Claude** for self-awareness features (interpretation, weekly
-  summaries, pattern narration) — used only where it deepens insight, never for
-  gimmicks. Every AI feature degrades gracefully to deterministic output when no
-  API key is present, so the product always works.
+- **Firebase** — Auth (Email + Google) and Firestore (profile, report, license codes)
+- **Anthropic Claude** — personalises the report prose (optional; graceful fallback)
 
-### Architecture
+### Architecture (deliberately lean)
 
 ```
 src/
-  domain/      Pure, framework-free behavioral logic (typed, unit-testable)
-  lib/         Firebase clients, auth provider, AI layer, utilities
-  services/    Firestore data access
-  components/  UI primitives + feature components
-  app/         Next.js routes (App Router)
+  domain/        Pure logic — assessment scoring, archetypes, nafs profile,
+                 self-sabotage content, report generation, 30-day blueprint
+  lib/           Firebase client, auth provider, AI layer, demo store, utils
+  services/      Firestore access — report + license
+  components/    UI primitives + assessment, report, unlock, settings
+  app/           Routes: landing, auth, assessment, (app)/report, /unlock, /demo
 ```
 
-The `domain/` layer contains no React or Firebase — just the scoring engines,
-archetype matching, and pattern detection. This keeps the behavioral core
-portable and easy to reason about.
+There is no ongoing tracking, no rooms, no realtime, no background jobs — the
+product is a near-stateless generator plus a saved artifact.
 
 ---
 
@@ -78,51 +87,20 @@ portable and easy to reason about.
 
 ```bash
 npm install
-cp .env.example .env.local   # then fill in your Firebase (and optional AI) keys
-npm run dev
+cp .env.example .env.local   # add Firebase keys (+ optional Anthropic key)
+npm run dev                  # http://localhost:3000
 ```
 
-Open http://localhost:3000. Without Firebase credentials the marketing pages
-render and the app explains what's missing; add the keys to enable sign-in.
+Without Firebase, the landing + `/demo` still work. With Firebase, enable
+Email/Password + Google sign-in, create Firestore, and deploy rules:
 
-### Firebase setup
+```bash
+firebase deploy --only firestore:rules,firestore:indexes
+```
 
-1. Create a Firebase project and a Web app; copy the config into the
-   `NEXT_PUBLIC_FIREBASE_*` variables.
-2. Enable **Email/Password** and **Google** sign-in providers.
-3. Create a **Firestore** database.
-4. Deploy security rules and indexes:
-   ```bash
-   firebase deploy --only firestore:rules,firestore:indexes
-   ```
-5. (Optional, for privileged server features) add a service account to the
-   `FIREBASE_*` admin variables.
-
-### AI setup (optional)
-
-Set `ANTHROPIC_API_KEY` to enable AI interpretation and summaries. Without it,
-the app falls back to composed, deterministic insights.
-
----
+To issue access codes, add documents to `licenseCodes` (doc id = the code),
+each `{ used: false, usedBy: null, batch: "...", createdAt: "..." }`.
 
 ## Scripts
 
-- `npm run dev` — start the dev server
-- `npm run build` — production build
-- `npm run start` — run the production build
-- `npm run lint` — lint
-- `npm run typecheck` — TypeScript check
-
----
-
-## Design principles
-
-- **Calm by design.** No dopamine loops, no addictive streak mechanics, no
-  noise. The experience encourages reflection, not stimulation.
-- **Privacy first.** Behavioral data is private by default; partner visibility is
-  explicit and consent-gated.
-- **Honest, not shaming.** The product names your patterns so you feel *seen*,
-  not judged.
-
-The success metric is a **reduction in behavioral violations over time**. If
-users become more disciplined, the product succeeds.
+- `npm run dev` · `npm run build` · `npm run start` · `npm run lint` · `npm run typecheck`
