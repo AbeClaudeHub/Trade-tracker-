@@ -3,31 +3,31 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthProvider";
-import { listDailies } from "@/services/dailyService";
-import { listReflections } from "@/services/reflectionService";
-import { getMyLink } from "@/services/partnerService";
+import { listDailies, getDaily } from "@/services/dailyService";
+import { listNafsIncidents } from "@/services/nafsService";
 import { getLatestAssessment } from "@/services/assessmentService";
+import { computeIndices } from "@/services/scoreService";
 import {
   buildTrend,
-  consistencyStreak,
-  disciplineIndex,
   summarizeWindow,
 } from "@/domain/behavior/scoring";
 import { detectPatterns } from "@/domain/patterns/detect";
-import { getArchetype } from "@/domain/archetypes/engine";
+import { rankedNafs, tallyNafs } from "@/domain/nafs/analytics";
+import { NAFS_LABELS } from "@/domain/types";
 import type {
+  BehaviorIndices,
   DailyEntry,
   DetectedPattern,
-  PartnerLink,
-  WeeklyReflection,
+  NafsIncident,
 } from "@/domain/types";
-import { daysAgoKey, todayKey, weekStartKey, formatShortDate } from "@/lib/dates";
+import { daysAgoKey, todayKey } from "@/lib/dates";
 import { Page, PageHeader } from "@/components/layout/Page";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ScoreDial } from "@/components/ui/ScoreDial";
 import { Sparkline } from "@/components/ui/Sparkline";
 import { PatternCard } from "@/components/patterns/PatternCard";
+import { InterventionBanner } from "@/components/interventions/InterventionBanner";
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
@@ -41,32 +41,41 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
 
 export function Dashboard() {
   const { user, profile } = useAuth();
+  const [indices, setIndices] = useState<BehaviorIndices | null>(null);
   const [dailies, setDailies] = useState<DailyEntry[]>([]);
-  const [reflections, setReflections] = useState<WeeklyReflection[]>([]);
+  const [incidents, setIncidents] = useState<NafsIncident[]>([]);
   const [patterns, setPatterns] = useState<DetectedPattern[]>([]);
-  const [link, setLink] = useState<PartnerLink | null>(null);
+  const [todayDone, setTodayDone] = useState<{ committed: boolean; reviewed: boolean }>({
+    committed: false,
+    reviewed: false,
+  });
   const [hasAssessment, setHasAssessment] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const [history, refl, partnerLink, assessment] = await Promise.all([
-        listDailies(user.uid, daysAgoKey(90)),
-        listReflections(user.uid),
-        getMyLink(user.uid),
+      const today = todayKey();
+      const [history, inc, assessment, todayEntry] = await Promise.all([
+        listDailies(user.uid, daysAgoKey(120)),
+        listNafsIncidents(user.uid, daysAgoKey(120)),
         getLatestAssessment(user.uid),
+        getDaily(user.uid, today),
       ]);
       setDailies(history);
-      setReflections(refl);
-      setPatterns(detectPatterns(history).slice(0, 2));
-      setLink(partnerLink);
+      setIncidents(inc);
+      setIndices(computeIndices(history, inc, today));
+      setPatterns(detectPatterns(history, inc).slice(0, 2));
       setHasAssessment(Boolean(assessment));
+      setTodayDone({
+        committed: Boolean(todayEntry?.committedAt),
+        reviewed: Boolean(todayEntry?.reviewedAt),
+      });
       setLoading(false);
     })();
   }, [user]);
 
-  if (loading) {
+  if (loading || !indices) {
     return (
       <Page>
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-line border-t-accent" />
@@ -80,8 +89,7 @@ export function Dashboard() {
         <Card className="text-center">
           <h2 className="font-serif text-xl text-ink">Start with the assessment</h2>
           <p className="mx-auto mt-2 max-w-md text-muted">
-            Everything in Niyyah OS begins with understanding how you behave.
-            Take the behavioral assessment to reveal your archetype.
+            It reveals your starting line — the archetype you&apos;ll evolve beyond.
           </p>
           <Link href="/assessment" className="mt-6 inline-block">
             <Button size="lg">Begin the assessment</Button>
@@ -91,134 +99,113 @@ export function Dashboard() {
     );
   }
 
-  const weekStart = weekStartKey();
-  const weekly = summarizeWindow(dailies.filter((d) => d.date >= weekStart));
   const monthly = summarizeWindow(dailies.filter((d) => d.date >= daysAgoKey(30)));
-  const streak = consistencyStreak(dailies, todayKey());
   const trend = buildTrend(dailies.filter((d) => d.date >= daysAgoKey(21)));
-  const index = disciplineIndex(monthly.average);
-  const archetype = profile?.archetypeId ? getArchetype(profile.archetypeId) : null;
-  const latestReflection = reflections[0];
-
+  const topNafs = rankedNafs(tallyNafs(incidents, daysAgoKey(30))).filter((n) => n.count > 0).slice(0, 3);
   const firstName = (profile?.displayName ?? "trader").split(" ")[0];
+  const inRoom = (profile?.roomIds.length ?? 0) > 0;
 
   return (
     <Page>
       <PageHeader
         eyebrow="Dashboard"
-        title={`How disciplined are you becoming, ${firstName}?`}
-        description={
-          archetype
-            ? `Tracked as ${archetype.name}. The only metric that matters is whether your violations fall over time.`
-            : "The only metric that matters is whether your violations fall over time."
-        }
+        title={`Are you becoming more disciplined, ${firstName}?`}
+        description="The only metric that matters is whether your violations fall over time."
         action={
           <Link href="/daily">
-            <Button>Today&apos;s check-in</Button>
+            <Button>{!todayDone.committed ? "Commit to today" : !todayDone.reviewed ? "Review today" : "Today's check-in"}</Button>
           </Link>
         }
       />
 
+      <InterventionBanner />
+
+      {/* Today's call to action */}
+      {!todayDone.committed || !todayDone.reviewed ? (
+        <Card className="mb-6 border-accent/20 bg-accent-soft/40">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-[15px] text-ink">
+              {!todayDone.committed
+                ? "You haven't committed to today yet. Intention before action."
+                : "Commitments locked. Review your day after the session closes."}
+            </p>
+            <Link href="/daily">
+              <Button size="sm">{!todayDone.committed ? "Set commitments" : "Review now"}</Button>
+            </Link>
+          </div>
+        </Card>
+      ) : null}
+
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Discipline index */}
         <Card className="flex flex-col items-center justify-center text-center">
-          <ScoreDial value={index} label="Discipline" />
+          <ScoreDial value={indices.disciplineScore} label="Discipline" />
           <p className="mt-4 max-w-[220px] text-sm text-muted">
-            Your 30-day discipline index, built from behavior alone.
+            Your discipline score, built from behavior alone.
           </p>
         </Card>
 
-        {/* Key numbers */}
         <Card className="lg:col-span-2">
           <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-            <Stat
-              label="This week"
-              value={weekly.total > 0 ? `+${weekly.total}` : `${weekly.total}`}
-              hint={`${weekly.days} day${weekly.days === 1 ? "" : "s"} logged`}
-            />
-            <Stat
-              label="This month"
-              value={monthly.total > 0 ? `+${monthly.total}` : `${monthly.total}`}
-              hint={`${monthly.violations} violation${monthly.violations === 1 ? "" : "s"}`}
-            />
-            <Stat label="Streak" value={`${streak}`} hint="clean days in a row" />
-            <Stat
-              label="Affirmations"
-              value={`${monthly.affirmations}`}
-              hint="disciplined acts (30d)"
-            />
+            <Stat label="Consistency" value={`${indices.consistencyScore}`} hint="showed up (30d)" />
+            <Stat label="Completion" value={`${Math.round(indices.completionRate * 100)}%`} hint="commitments honored" />
+            <Stat label="Nafs control" value={`${indices.nafsControlIndex}`} hint="internal battles" />
+            <Stat label="Streak" value={`${indices.currentStreak}`} hint="clean days" />
           </div>
           <div className="mt-7">
             <p className="label mb-3">Behavior trend · 21 days</p>
-            <Sparkline data={trend} />
+            <Sparkline data={trend.map((t) => ({ date: t.date, score: t.dayScore }))} />
           </div>
         </Card>
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        {/* Patterns */}
         <div className="space-y-4 lg:col-span-2">
           <div className="flex items-center justify-between">
             <h2 className="font-serif text-lg text-ink">What we&apos;re noticing</h2>
-            <Link href="/patterns" className="text-sm text-accent hover:underline">
-              All patterns
-            </Link>
+            <Link href="/patterns" className="text-sm text-accent hover:underline">All patterns</Link>
           </div>
           {patterns.length > 0 ? (
             patterns.map((p) => <PatternCard key={p.id} pattern={p} />)
           ) : (
             <Card>
               <p className="text-sm text-muted">
-                Keep logging your days. Once there&apos;s enough history, Niyyah OS
-                will surface the patterns behind your violations — the ones that
-                are hard to see from the inside.
+                Keep logging your days. Once there&apos;s enough history, Niyyah OS will
+                surface the patterns behind your violations.
               </p>
             </Card>
           )}
         </div>
 
-        {/* Side column */}
         <div className="space-y-6">
           <Card>
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="label">Latest reflection</h3>
-              <Link href="/reflection" className="text-sm text-accent hover:underline">
-                Reflect
-              </Link>
+              <h3 className="label">Nafs battles (30d)</h3>
+              <Link href="/nafs" className="text-sm text-accent hover:underline">Tracker</Link>
             </div>
-            {latestReflection ? (
-              <div>
-                <p className="text-xs text-faint">
-                  Week of {formatShortDate(latestReflection.weekStart)}
-                </p>
-                <p className="mt-2 line-clamp-4 text-sm leading-relaxed text-ink/90">
-                  {latestReflection.nextWeek || latestReflection.improved || "—"}
-                </p>
-              </div>
+            {topNafs.length > 0 ? (
+              <ul className="space-y-2">
+                {topNafs.map((n) => (
+                  <li key={n.category} className="flex items-center justify-between text-sm">
+                    <span className="text-ink">{NAFS_LABELS[n.category]}</span>
+                    <span className="tabular-nums text-muted">{n.count}</span>
+                  </li>
+                ))}
+              </ul>
             ) : (
-              <p className="text-sm text-muted">
-                You haven&apos;t reflected yet this week.
-              </p>
+              <p className="text-sm text-muted">No violations logged yet.</p>
             )}
           </Card>
 
           <Card>
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="label">Accountability partner</h3>
-              <Link href="/partner" className="text-sm text-accent hover:underline">
-                Manage
-              </Link>
+              <h3 className="label">Accountability room</h3>
+              <Link href="/rooms" className="text-sm text-accent hover:underline">Open</Link>
             </div>
-            {link?.status === "active" ? (
-              <p className="text-sm text-ink/90">You have an active partner.</p>
-            ) : link?.status === "pending" ? (
-              <p className="text-sm text-muted">A partner request is pending.</p>
-            ) : (
-              <p className="text-sm text-muted">
-                No partner yet. One person who sees your behavior changes
-                everything.
-              </p>
-            )}
+            <p className="text-sm text-muted">
+              {inRoom
+                ? "Your room can see whether you followed through today."
+                : "You're not in a room yet. Visibility is what changes behavior."}
+            </p>
           </Card>
         </div>
       </div>

@@ -10,11 +10,12 @@ import { cn } from "@/lib/utils";
 
 const NAV: { href: string; label: string; icon: IconName; primary?: boolean }[] = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard", primary: true },
+  { href: "/rooms", label: "Rooms", icon: "partner", primary: true },
   { href: "/daily", label: "Daily", icon: "daily", primary: true },
+  { href: "/nafs", label: "Nafs", icon: "nafs", primary: true },
   { href: "/patterns", label: "Patterns", icon: "patterns", primary: true },
-  { href: "/reflection", label: "Reflect", icon: "reflection", primary: true },
+  { href: "/reflection", label: "Reflect", icon: "reflection" },
   { href: "/archetype", label: "Archetype", icon: "archetype" },
-  { href: "/partner", label: "Partner", icon: "partner", primary: true },
   { href: "/settings", label: "Settings", icon: "settings" },
 ];
 

@@ -51,9 +51,11 @@ async function ensureProfile(user: User): Promise<UserProfile> {
     email: user.email ?? "",
     displayName: user.displayName ?? (user.email?.split("@")[0] ?? "Trader"),
     createdAt: new Date().toISOString(),
+    tz: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
     assessmentCompleted: false,
     archetypeId: null,
-    partnerVisibility: { behaviorScore: true, reflections: false },
+    baselineArchetypeId: null,
+    roomIds: [],
   };
   await setDoc(ref, { ...profile, _createdAt: serverTimestamp() });
   return profile;

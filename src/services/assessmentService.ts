@@ -35,9 +35,15 @@ export async function submitAssessment(
   };
 
   await setDoc(paths.assessment(uid, id), result);
+
+  // The first assessment also sets the immutable baseline archetype — the
+  // "starting line" against which Identity Evolution measures progress.
+  const snap = await getDoc(paths.user(uid));
+  const hasBaseline = snap.exists() && snap.data().baselineArchetypeId;
   await updateDoc(paths.user(uid), {
     assessmentCompleted: true,
     archetypeId: primary,
+    ...(hasBaseline ? {} : { baselineArchetypeId: primary }),
   });
 
   return result;

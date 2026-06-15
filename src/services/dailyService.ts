@@ -8,11 +8,12 @@ import {
 } from "firebase/firestore";
 import type {
   BehaviorActionId,
+  Commitment,
   DailyEntry,
-  PostMarketEntry,
+  PostMarketReview,
   PreMarketEntry,
 } from "@/domain/types";
-import { hasViolation, scoreActions } from "@/domain/behavior/scoring";
+import { computeDayScore, hasViolation, honoredRate } from "@/domain/behavior/scoring";
 import { todayKey } from "@/lib/dates";
 import { paths } from "./collections";
 
@@ -22,8 +23,10 @@ function blankEntry(uid: string, date: string): DailyEntry {
     userId: uid,
     date,
     createdAt: new Date().toISOString(),
+    commitments: [],
     actions: [],
-    score: 0,
+    dayScore: 0,
+    honoredRate: 0,
     hadViolation: false,
   };
 }
@@ -36,42 +39,59 @@ export async function getDaily(
   return snap.exists() ? (snap.data() as DailyEntry) : null;
 }
 
-/** Save the morning (pre-market) check-in. */
-export async function savePreMarket(
+function recompute(entry: DailyEntry): DailyEntry {
+  return {
+    ...entry,
+    dayScore: computeDayScore(entry.commitments, entry.actions, Boolean(entry.reviewedAt)),
+    honoredRate: honoredRate(entry.commitments),
+    hadViolation: hasViolation(entry.actions),
+  };
+}
+
+/** Post the morning commitments (must happen BEFORE the session). */
+export async function postCommitments(
   uid: string,
   date: string,
+  commitments: Commitment[],
   preMarket: PreMarketEntry,
 ): Promise<DailyEntry> {
   const existing = (await getDaily(uid, date)) ?? blankEntry(uid, date);
-  const next: DailyEntry = { ...existing, preMarket };
+  const next = recompute({
+    ...existing,
+    commitments,
+    preMarket,
+    committedAt: existing.committedAt ?? new Date().toISOString(),
+  });
   await setDoc(paths.daily(uid, date), next);
   return next;
 }
 
-/** Save the closing (post-market) review, recomputing the day's score. */
-export async function savePostMarket(
+/** Complete the evening review: commitment outcomes, behaviors, reflection. */
+export async function postReview(
   uid: string,
   date: string,
-  postMarket: PostMarketEntry,
+  commitmentStatus: Record<string, "honored" | "broken">,
   actions: BehaviorActionId[],
+  postMarket: PostMarketReview,
 ): Promise<DailyEntry> {
   const existing = (await getDaily(uid, date)) ?? blankEntry(uid, date);
-  const next: DailyEntry = {
+  const commitments = existing.commitments.map((c) => ({
+    ...c,
+    status: commitmentStatus[c.id] ?? c.status,
+  }));
+  const next = recompute({
     ...existing,
-    postMarket,
+    commitments,
     actions,
-    score: scoreActions(actions),
-    hadViolation: hasViolation(actions),
-  };
+    postMarket,
+    reviewedAt: new Date().toISOString(),
+  });
   await setDoc(paths.daily(uid, date), next);
   return next;
 }
 
-/** List entries on/after `sinceDate` (yyyy-MM-dd), oldest first. */
-export async function listDailies(
-  uid: string,
-  sinceDate: string,
-): Promise<DailyEntry[]> {
+/** List entries on/after `sinceDate`, oldest first. */
+export async function listDailies(uid: string, sinceDate: string): Promise<DailyEntry[]> {
   const q = query(
     paths.dailies(uid),
     where("date", ">=", sinceDate),

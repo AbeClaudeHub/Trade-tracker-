@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { listDailies } from "@/services/dailyService";
+import { listNafsIncidents } from "@/services/nafsService";
 import { detectPatterns } from "@/domain/patterns/detect";
 import type { DailyEntry, DetectedPattern } from "@/domain/types";
 import { daysAgoKey } from "@/lib/dates";
@@ -21,9 +22,12 @@ export function PatternsView() {
     if (!user) return;
     let cancelled = false;
     (async () => {
-      const history = await listDailies(user.uid, daysAgoKey(180));
+      const [history, incidents] = await Promise.all([
+        listDailies(user.uid, daysAgoKey(180)),
+        listNafsIncidents(user.uid, daysAgoKey(180)),
+      ]);
       if (cancelled) return;
-      const detected = detectPatterns(history);
+      const detected = detectPatterns(history, incidents);
       setDays(history);
       setPatterns(detected);
       setLoading(false);

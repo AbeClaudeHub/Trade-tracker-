@@ -35,3 +35,5 @@ yarn-error.log*
 .firebase/
 firebase-debug.log
 serviceAccount*.json
+functions/lib/
+functions/node_modules/

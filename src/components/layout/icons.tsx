@@ -18,6 +18,7 @@ export type IconName =
   | "reflection"
   | "archetype"
   | "partner"
+  | "nafs"
   | "settings";
 
 export function Icon({ name, ...props }: { name: IconName } & SVGProps<SVGSVGElement>) {
@@ -57,6 +58,12 @@ export function Icon({ name, ...props }: { name: IconName } & SVGProps<SVGSVGEle
         <circle cx="8" cy="9" r="3" />
         <circle cx="17" cy="10" r="2.5" />
         <path d="M2.5 19c0-2.8 2.4-5 5.5-5s5.5 2.2 5.5 5M15 19c0-1.8.8-3.4 2-4" />
+      </>
+    ),
+    nafs: (
+      <>
+        <path d="M12 21c-4-2.5-7-5.6-7-9.8A4.2 4.2 0 0 1 12 8a4.2 4.2 0 0 1 7 3.2c0 4.2-3 7.3-7 9.8z" />
+        <path d="M12 8v5" />
       </>
     ),
     settings: (

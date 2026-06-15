@@ -9,8 +9,8 @@ import {
   saveReflectionSummary,
 } from "@/services/reflectionService";
 import { listDailies } from "@/services/dailyService";
-import { updateSharedSummary } from "@/services/partnerService";
-import { consistencyStreak, summarizeWindow } from "@/domain/behavior/scoring";
+import { shareReflectionToRoom } from "@/services/roomService";
+import { cleanStreak, summarizeWindow } from "@/domain/behavior/scoring";
 import type { WeeklyReflection } from "@/domain/types";
 import { todayKey, weekId, weekStartKey, formatShortDate } from "@/lib/dates";
 import { Page, PageHeader } from "@/components/layout/Page";
@@ -36,6 +36,7 @@ export function ReflectionView() {
   const [summary, setSummary] = useState("");
   const [context, setContext] = useState({ score: 0, violations: 0, streak: 0 });
   const [saving, setSaving] = useState(false);
+  const [shared, setShared] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -55,13 +56,14 @@ export function ReflectionView() {
           nextWeek: current.nextWeek,
         });
         if (current.summary) setSummary(current.summary);
+        setShared(Boolean(current.sharedToRoom));
       }
       setHistory(all);
-      const window = summarizeWindow(weekDailies);
+      const w = summarizeWindow(weekDailies);
       setContext({
-        score: window.total,
-        violations: window.violations,
-        streak: consistencyStreak(weekDailies, todayKey()),
+        score: w.averageDayScore,
+        violations: w.violations,
+        streak: cleanStreak(weekDailies, todayKey()),
       });
       setLoading(false);
     })();
@@ -71,8 +73,6 @@ export function ReflectionView() {
     if (!user) return;
     setSaving(true);
     const saved = await saveReflection(user.uid, fields);
-
-    // Generate an AI summary of the week (graceful if AI is unconfigured).
     try {
       const res = await fetch("/api/ai/reflect", {
         method: "POST",
@@ -83,23 +83,24 @@ export function ReflectionView() {
       if (data.summary) {
         setSummary(data.summary);
         await saveReflectionSummary(user.uid, saved.id, data.summary);
-        saved.summary = data.summary;
       }
     } catch {
       /* ignore */
     }
-
-    // Share a consent-gated excerpt with an accountability partner.
-    if (profile) {
-      updateSharedSummary(user.uid, profile.partnerVisibility, {
-        weeklyScore: context.score,
-        streak: context.streak,
-        lastReflectionExcerpt: fields.nextWeek,
-      }).catch(() => {});
-    }
-
     setHistory((prev) => [saved, ...prev.filter((r) => r.id !== saved.id)]);
     setSaving(false);
+  }
+
+  async function handleShare() {
+    if (!user || !profile || profile.roomIds.length === 0) return;
+    const excerpt = (fields.nextWeek || fields.improved || "").slice(0, 240);
+    if (!excerpt) return;
+    await Promise.all(
+      profile.roomIds.map((rid) =>
+        shareReflectionToRoom(rid, user.uid, todayKey(), excerpt),
+      ),
+    );
+    setShared(true);
   }
 
   if (loading) {
@@ -117,10 +118,16 @@ export function ReflectionView() {
       <PageHeader
         eyebrow={`Week of ${formatShortDate(weekStartKey())}`}
         title="Weekly reflection"
-        description="Once a week, step back. This is where scattered days become a story you can learn from."
+        description="Step back. Scattered days become a story you can learn from — and share with your room."
       />
 
       <Card className="mb-6">
+        <div className="mb-5 grid grid-cols-3 gap-3 rounded-xl bg-raised p-3 text-center">
+          <div><p className="font-serif text-xl text-ink">{context.score}</p><p className="text-xs text-faint">avg day score</p></div>
+          <div><p className="font-serif text-xl text-ink">{context.violations}</p><p className="text-xs text-faint">violations</p></div>
+          <div><p className="font-serif text-xl text-ink">{context.streak}</p><p className="text-xs text-faint">streak</p></div>
+        </div>
+
         <div className="space-y-5">
           {PROMPTS.map((p) => (
             <div key={p.key}>
@@ -133,10 +140,15 @@ export function ReflectionView() {
             </div>
           ))}
         </div>
-        <div className="mt-6">
+        <div className="mt-6 flex flex-wrap items-center gap-3">
           <Button onClick={handleSave} disabled={saving}>
-            {saving ? "Saving your reflection…" : "Save this week"}
+            {saving ? "Saving…" : "Save this week"}
           </Button>
+          {profile && profile.roomIds.length > 0 ? (
+            <Button variant="secondary" onClick={handleShare} disabled={shared}>
+              {shared ? "Shared with room" : "Share with my room"}
+            </Button>
+          ) : null}
         </div>
 
         {summary ? (
@@ -158,18 +170,8 @@ export function ReflectionView() {
                   <p className="mt-2 prose-reflection text-[15px]">{r.summary}</p>
                 ) : (
                   <dl className="mt-3 space-y-2 text-sm">
-                    {r.improved ? (
-                      <div>
-                        <dt className="text-faint">Improved</dt>
-                        <dd className="text-ink/90">{r.improved}</dd>
-                      </div>
-                    ) : null}
-                    {r.nextWeek ? (
-                      <div>
-                        <dt className="text-faint">Committed to</dt>
-                        <dd className="text-ink/90">{r.nextWeek}</dd>
-                      </div>
-                    ) : null}
+                    {r.improved ? <div><dt className="text-faint">Improved</dt><dd className="text-ink/90">{r.improved}</dd></div> : null}
+                    {r.nextWeek ? <div><dt className="text-faint">Committed to</dt><dd className="text-ink/90">{r.nextWeek}</dd></div> : null}
                   </dl>
                 )}
               </Card>

@@ -1,4 +1,7 @@
-import type { BehaviorTrendPoint } from "@/domain/types";
+export interface SparkPoint {
+  date: string;
+  score: number;
+}
 
 /** A quiet line of behavior over time. Zero line drawn for reference. */
 export function Sparkline({
@@ -6,7 +9,7 @@ export function Sparkline({
   width = 520,
   height = 120,
 }: {
-  data: BehaviorTrendPoint[];
+  data: SparkPoint[];
   width?: number;
   height?: number;
 }) {

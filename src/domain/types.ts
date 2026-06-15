@@ -1,8 +1,9 @@
 /**
- * Niyyah OS — domain model.
+ * Niyyah OS — domain model (v2: accountability-first).
  *
- * Behavior is the product. Nothing in this model tracks PnL, win rate, or
- * market data. Everything models the trader's *behavior* and self-awareness.
+ * Behavior is the product. Nothing here tracks PnL, win rate, or market data.
+ * The unit of change is the daily Commitment; the engine of change is the
+ * Accountability Room; the language of progress is the Behavioral Score.
  */
 
 // ───────────────────────────── Behavioral dimensions ─────────────────────────
@@ -48,11 +49,6 @@ export type DimensionScores = Record<BehavioralDimension, number>;
 
 // ───────────────────────────────── Assessment ────────────────────────────────
 
-/**
- * A single Likert assessment question. `weight` reflects how diagnostic the
- * item is for its dimension. `reverse` items are phrased so that agreement
- * indicates *unhealthy* behavior, and are inverted during scoring.
- */
 export interface AssessmentQuestion {
   id: string;
   dimension: BehavioralDimension;
@@ -73,9 +69,7 @@ export interface AssessmentResult {
   responses: AssessmentResponses;
   dimensionScores: DimensionScores;
   archetypeId: ArchetypeId;
-  /** Secondary archetype — the next-strongest pull. */
   secondaryArchetypeId: ArchetypeId | null;
-  /** Optional AI-generated interpretation of the result. */
   interpretation?: string;
 }
 
@@ -101,97 +95,212 @@ export interface Archetype {
   commonMistakes: string[];
   emotionalTriggers: string[];
   recommendations: string[];
-  /**
-   * Dimension fingerprint. For each dimension, a negative weight means low
-   * scores on that dimension pull a trader toward this archetype.
-   */
   fingerprint: Partial<Record<BehavioralDimension, number>>;
 }
 
-// ──────────────────────────── Daily accountability ───────────────────────────
+// ──────────────────────────── Behavior actions ───────────────────────────────
 
-export interface PreMarketEntry {
-  feeling: string;
-  plan: string;
-  sabotageRisk: string;
-  /** 1–5 self-rated emotional intensity at open. */
-  emotionalState: LikertValue;
-}
-
-export interface PostMarketEntry {
-  followedRules: boolean;
-  violatedRisk: boolean;
-  emotionsAffectedDecisions: boolean;
-  learned: string;
-}
-
-/** A behavior action toggled in the post-market check-in. */
+/** A behavior toggled in the post-market review. Drives the score. */
 export type BehaviorActionId =
-  | "followedRules"
-  | "waitedForSetup"
+  | "followedPlan"
   | "honoredStop"
-  | "respectedRisk"
+  | "respectedMaxLoss"
+  | "waitedForSetup"
+  | "completedReflection"
+  | "revengeTraded"
   | "overtraded"
   | "movedStop"
-  | "revengeTraded"
-  | "chasedEntries";
+  | "chasedEntries"
+  | "brokeRiskRules";
 
 export interface BehaviorAction {
   id: BehaviorActionId;
   label: string;
   description: string;
   points: number; // positive = disciplined, negative = violation
-  /** Whether selecting this counts as a behavioral violation. */
   isViolation: boolean;
   dimension: BehavioralDimension;
+  /** Default nafs categories this violation tends to stem from (suggestions). */
+  nafsHints?: NafsCategory[];
+}
+
+// ─────────────────────────────── Nafs battle ─────────────────────────────────
+
+/** The eight internal drivers ("nafs") behind behavioral violations. */
+export type NafsCategory =
+  | "greed"
+  | "fear"
+  | "ego"
+  | "impatience"
+  | "attachment"
+  | "validationSeeking"
+  | "laziness"
+  | "overconfidence";
+
+export const NAFS_CATEGORIES: NafsCategory[] = [
+  "greed",
+  "fear",
+  "ego",
+  "impatience",
+  "attachment",
+  "validationSeeking",
+  "laziness",
+  "overconfidence",
+];
+
+export const NAFS_LABELS: Record<NafsCategory, string> = {
+  greed: "Greed",
+  fear: "Fear",
+  ego: "Ego",
+  impatience: "Impatience",
+  attachment: "Attachment",
+  validationSeeking: "Validation Seeking",
+  laziness: "Laziness",
+  overconfidence: "Overconfidence",
+};
+
+export interface NafsIncident {
+  id: string;
+  userId: string;
+  date: string; // yyyy-MM-dd
+  categories: NafsCategory[];
+  sourceType: "violation" | "brokenCommitment";
+  sourceRef: string; // BehaviorActionId or commitment id
+  note?: string;
+  intensity?: 1 | 2 | 3;
+  createdAt: string;
+}
+
+/** Rolling per-category counts over a window. */
+export type NafsTally = Record<NafsCategory, number>;
+
+// ──────────────────────────── Daily commitments ──────────────────────────────
+
+export interface CommitmentTemplate {
+  id: string;
+  label: string;
+  description: string;
+  /** The behavior this commitment guards against breaking. */
+  mappedViolation?: BehaviorActionId;
+  nafsHints: NafsCategory[];
+}
+
+export type CommitmentStatus = "pending" | "honored" | "broken";
+
+export interface Commitment {
+  id: string;
+  templateId: string | null; // null = custom
+  text: string;
+  mappedViolation?: BehaviorActionId;
+  nafsTags: NafsCategory[];
+  status: CommitmentStatus;
+  note?: string;
+}
+
+// ──────────────────────────── Daily entry (v2) ───────────────────────────────
+
+export interface PreMarketEntry {
+  feeling: string;
+  plan: string;
+  sabotageRisk: string;
+  emotionalState: LikertValue;
+}
+
+export interface PostMarketReview {
+  followedRules: boolean;
+  violatedRisk: boolean;
+  emotionsAffectedDecisions: boolean;
+  learned: string;
 }
 
 export interface DailyEntry {
   id: string; // yyyy-MM-dd
   userId: string;
-  date: string; // yyyy-MM-dd (the trading day)
-  createdAt: string; // ISO
+  date: string; // yyyy-MM-dd
+  createdAt: string;
+
+  committedAt?: string; // ISO — when commitments were posted
+  reviewedAt?: string; // ISO — when the review was completed
+
+  commitments: Commitment[];
   preMarket?: PreMarketEntry;
-  postMarket?: PostMarketEntry;
-  /** Behavior actions selected during the post-market review. */
+  postMarket?: PostMarketReview;
   actions: BehaviorActionId[];
-  /** Computed behavior score for the day. */
-  score: number;
-  /** Convenience flags derived at write-time for fast queries. */
+
+  // Derived at write-time for fast reads
+  dayScore: number; // 0–100
+  honoredRate: number; // 0–1
   hadViolation: boolean;
 }
 
-// ───────────────────────────── Weekly reflection ─────────────────────────────
+// ──────────────────────────────── Scoring ────────────────────────────────────
 
-export interface WeeklyReflection {
-  id: string; // yyyy-'W'ww
-  userId: string;
-  weekStart: string; // yyyy-MM-dd (Monday)
-  createdAt: string;
-  improved: string;
-  repeated: string;
-  triggers: string;
-  nextWeek: string;
-  /** Optional AI-generated summary of the week. */
-  summary?: string;
+/** Live behavioral indices — the user's headline KPIs. */
+export interface BehaviorIndices {
+  disciplineScore: number; // 0–100, EWMA hero KPI
+  consistencyScore: number; // 0–100, % days showed up
+  nafsControlIndex: number; // 0–100, fewer internal-battle losses = higher
+  completionRate: number; // 0–1, commitments honored
+  currentStreak: number; // clean days in a row
+  longestStreak: number;
+  lastComputedDate: string;
 }
 
-// ──────────────────────────────── Behavior score ─────────────────────────────
+export interface GrowthSummary {
+  windowDays: number;
+  disciplineDelta: number;
+  violationReductionPct: number; // vs baseline window
+}
 
 export interface ScoreWindow {
-  total: number;
   days: number;
-  average: number;
+  averageDayScore: number;
   violations: number;
   affirmations: number;
+  honoredRate: number;
 }
 
 export interface BehaviorTrendPoint {
-  date: string; // yyyy-MM-dd
-  score: number;
+  date: string;
+  dayScore: number;
 }
 
-// ─────────────────────────────── Pattern detection ───────────────────────────
+// ─────────────────────────────── Interventions ───────────────────────────────
+
+export type InterventionType =
+  | "patternWarning"
+  | "extraReflection"
+  | "mandatoryReview"
+  | "commitmentReset"
+  | "focusChallenge"
+  | "partnerNotification";
+
+export type InterventionTrigger =
+  | "sameViolationRepeat"
+  | "commitmentRelapse"
+  | "scoreDrop"
+  | "nafsSpike"
+  | "disappearance"
+  | "streakBreakAfterLong";
+
+export type InterventionStatus = "active" | "acknowledged" | "resolved" | "expired";
+
+export interface Intervention {
+  id: string;
+  userId: string;
+  type: InterventionType;
+  trigger: InterventionTrigger;
+  title: string;
+  message: string;
+  escalationLevel: number; // 1–6
+  status: InterventionStatus;
+  createdAt: string;
+  dueAt?: string;
+  cooldownUntil?: string;
+  resolutionNote?: string;
+}
+
+// ─────────────────────────── Pattern detection ───────────────────────────────
 
 export type PatternSeverity = "insight" | "watch" | "alert";
 
@@ -200,30 +309,154 @@ export interface DetectedPattern {
   title: string;
   detail: string;
   severity: PatternSeverity;
-  /** 0–1 confidence based on sample size + effect strength. */
-  confidence: number;
+  confidence: number; // 0–1
+  /** Optional trigger this pattern should raise. */
+  trigger?: InterventionTrigger;
 }
 
-// ───────────────────────────────── Partner ───────────────────────────────────
+// ─────────────────────────── Identity evolution ──────────────────────────────
 
-export type PartnerLinkStatus = "pending" | "active" | "declined";
+export interface IdentitySnapshot {
+  id: string; // period key
+  userId: string;
+  takenAt: string;
+  dimensionScores: DimensionScores; // behavior-derived
+  archetypeId: ArchetypeId;
+  nafsTally: NafsTally;
+}
 
-export interface PartnerLink {
+export interface TransformationReport {
+  baselineArchetypeId: ArchetypeId;
+  currentArchetypeId: ArchetypeId;
+  daysTracked: number;
+  disciplineDelta: number;
+  violationReductionPct: number;
+  emotionalViolationReductionPct: number;
+  dominantNafsBefore: NafsCategory | null;
+  dominantNafsNow: NafsCategory | null;
+  dimensionDeltas: Partial<Record<BehavioralDimension, number>>;
+}
+
+// ───────────────────────────── Weekly reflection ─────────────────────────────
+
+export interface WeeklyReflection {
+  id: string; // yyyy-Www
+  userId: string;
+  weekStart: string;
+  createdAt: string;
+  improved: string;
+  repeated: string;
+  triggers: string;
+  nextWeek: string;
+  summary?: string;
+  /** Whether shared to the room feed. */
+  sharedToRoom?: boolean;
+}
+
+// ───────────────────────────────── Rooms ─────────────────────────────────────
+
+export type RoomMemberRole = "owner" | "moderator" | "member";
+
+export interface Room {
   id: string;
-  /** The two user ids in the pair, sorted. */
-  members: [string, string];
-  requestedBy: string;
-  status: PartnerLinkStatus;
+  name: string;
+  ownerId: string;
+  inviteCode: string;
+  memberCount: number;
+  cutoffLocalTime: string; // "16:30"
+  tzAnchor: string; // IANA tz
+  encouragedTemplates: string[];
+  commitmentOfWeek?: { templateId: string; weekStart: string };
   createdAt: string;
 }
 
-export interface PartnerFeedback {
+export interface MemberSharing {
+  score: boolean;
+  nafs: boolean;
+  reflections: boolean;
+}
+
+export interface RoomMember {
+  uid: string;
+  roomId: string;
+  role: RoomMemberRole;
+  displayName: string;
+  archetypeId: ArchetypeId | null;
+  joinedAt: string;
+  streak: number;
+  lastActiveDate: string | null;
+  sharing: MemberSharing;
+  weeklyPartnerUid: string | null; // rotating in-room pairing
+}
+
+export type DayState =
+  | "committed"
+  | "awaitingReview"
+  | "followedThrough"
+  | "repeatedMistake"
+  | "improved"
+  | "absent";
+
+/** Denormalised board row a member writes for themselves, consent-filtered. */
+export interface BoardRow {
+  uid: string;
+  date: string;
+  displayName: string;
+  state: DayState;
+  committedCount: number;
+  reviewed: boolean;
+  honoredRate: number | null; // null if not shared
+  dayScore: number | null; // null if not shared
+  streak: number;
+  trend: "up" | "flat" | "down";
+  topNafs: NafsCategory | null; // null if not shared
+  updatedAt: string;
+}
+
+export type RoomFeedType =
+  | "commitment"
+  | "review"
+  | "nudge"
+  | "attestation"
+  | "sharedReflection"
+  | "milestone";
+
+/** Fixed, structured nudge vocabulary — no free text, ever. */
+export type NudgeKind = "respect" | "stayStrong" | "checkIn" | "proudOfYou";
+
+export interface RoomFeedEvent {
   id: string;
-  linkId: string;
-  fromUserId: string;
-  toUserId: string;
+  roomId: string;
+  type: RoomFeedType;
+  fromUid: string;
+  toUid?: string;
+  date: string;
+  createdAt: string;
+  nudgeKind?: NudgeKind;
+  text?: string; // only for sharedReflection excerpts / structured reviews
+}
+
+export interface RoomRollup {
+  avgDiscipline: number;
+  completionRate: number;
+  cleanDaysWeek: number;
+  violationReductionPct: number;
+  reviewStreak: number;
+  mostImprovedUid: string | null;
+  biggestBattle: NafsCategory | null;
+  updatedAt: string;
+}
+
+export interface PartnerReview {
+  id: string;
+  roomId: string;
+  fromUid: string;
+  toUid: string;
   weekStart: string;
-  message: string;
+  acknowledgement: string;
+  oneThingWorking: string;
+  oneThingToConfront: string;
+  encouragement: string;
   createdAt: string;
 }
 
@@ -234,23 +467,10 @@ export interface UserProfile {
   email: string;
   displayName: string;
   createdAt: string;
+  tz: string; // IANA timezone
   assessmentCompleted: boolean;
   archetypeId: ArchetypeId | null;
-  /** Visibility consent for an accountability partner. */
-  partnerVisibility: {
-    behaviorScore: boolean;
-    reflections: boolean;
-  };
-  /**
-   * Denormalised, consent-gated snapshot a partner is allowed to see. Written
-   * only with fields the user has opted to share; absent fields stay private.
-   */
-  sharedSummary?: SharedSummary;
-}
-
-export interface SharedSummary {
-  updatedAt: string;
-  weeklyScore?: number;
-  streak?: number;
-  lastReflectionExcerpt?: string;
+  baselineArchetypeId: ArchetypeId | null;
+  roomIds: string[];
+  indices?: BehaviorIndices;
 }

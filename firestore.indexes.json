@@ -1,18 +1,10 @@
 {
   "indexes": [
     {
-      "collectionGroup": "partnerLinks",
+      "collectionGroup": "interventions",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "members", "arrayConfig": "CONTAINS" },
-        { "fieldPath": "status", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "partnerFeedback",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "linkId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }
