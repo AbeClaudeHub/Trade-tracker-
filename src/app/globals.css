@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  @apply bg-canvas text-ink font-sans antialiased;
+  font-feature-settings: "kern", "liga", "calt";
+}
+
+/* Quiet, intentional focus ring */
+*:focus-visible {
+  @apply outline-none ring-2 ring-accent/40 ring-offset-2 ring-offset-canvas rounded-sm;
+}
+
+/* Reusable composition layer — keeps markup calm and consistent */
+@layer components {
+  .card {
+    @apply rounded-2xl border border-line bg-surface shadow-soft;
+  }
+
+  .label {
+    @apply text-xs font-medium uppercase tracking-[0.14em] text-faint;
+  }
+
+  .prose-reflection {
+    @apply text-ink/90 leading-relaxed;
+  }
+
+  .input-base {
+    @apply w-full rounded-xl border border-line bg-raised px-4 py-3 text-ink
+           placeholder:text-faint transition-colors
+           focus:border-accent/50 focus:bg-surface;
+  }
+}
+
+/* Honor users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

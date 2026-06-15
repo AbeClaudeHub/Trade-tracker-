@@ -1,0 +1,21 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "partnerLinks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "members", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "partnerFeedback",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "linkId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
