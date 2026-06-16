@@ -66,12 +66,15 @@ export function AppShell({ children }: { children: ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
+                  "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-200",
                   active
                     ? "bg-accent-soft font-medium text-accent-ink"
                     : "text-muted hover:bg-sand/60 hover:text-ink",
                 )}
               >
+                {active ? (
+                  <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-gradient-to-b from-accent to-gold" />
+                ) : null}
                 <Icon name={item.icon} />
                 {item.label}
               </Link>

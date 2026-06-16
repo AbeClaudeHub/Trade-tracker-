@@ -66,26 +66,26 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-6 py-12">
-      <Link href="/" className="mb-10">
+      <Link href="/" className="mb-9">
         <Logo />
       </Link>
 
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm rounded-3xl border border-line bg-surface p-8 shadow-lift">
         <h1 className="font-serif text-title text-ink">
-          {isSignup ? "Begin your transformation" : "Welcome back"}
+          {isSignup ? "Begin your diagnosis" : "Welcome back"}
         </h1>
         <p className="mt-2 text-sm text-muted">
           {isSignup
             ? "Create your account. Your behavioral assessment comes next."
-            : "Sign in to continue your daily accountability."}
+            : "Sign in to view your report."}
         </p>
 
         {!configured ? (
           <div className="mt-6 rounded-xl border border-caution/30 bg-cautionsoft px-4 py-3 text-sm text-ink">
             Firebase isn&apos;t configured yet. Add your{" "}
             <code className="font-mono text-xs">NEXT_PUBLIC_FIREBASE_*</code> keys
-            (see <code className="font-mono text-xs">.env.example</code>) to enable
-            sign-in.
+            (see <code className="font-mono text-xs">.env.example</code>), or try the{" "}
+            <Link href="/demo" className="text-accent underline">live demo</Link>.
           </div>
         ) : null}
 

@@ -1,27 +1,30 @@
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
+import { Pill } from "@/components/ui/Pill";
 
-const LOOP = [
+const STEPS = [
   ["Assess", "A 54-question behavioral assessment maps how you actually act under pressure."],
-  ["Recognise", "Receive your trader archetype — the pattern beneath your sabotage."],
-  ["Show up", "A two-minute daily check-in, before and after the session."],
-  ["Reflect", "Each week, name what improved, what repeated, and what you'll change."],
-  ["Transform", "Watch your violations fall over time. That is the only metric that matters."],
+  ["Diagnose", "Receive your trader archetype, your blind spots, and the nafs beneath your mistakes."],
+  ["See the loop", "We map the exact self-sabotage cycles keeping you stuck."],
+  ["Get a plan", "A personal 30-day blueprint you run inside your accountability room."],
 ];
 
-const PRINCIPLES = [
+const PILLARS = [
   {
-    title: "Behavior is the product",
-    body: "No PnL. No win rate. No charts. We track whether you followed your rules, honored your stops, and respected your risk — nothing else.",
+    k: "Explains, not exposes",
+    title: "Your room shows what. Niyyah OS shows why.",
+    body: "Your accountability room already makes your behavior visible. Niyyah OS makes it understandable — and gives you a direction.",
   },
   {
-    title: "You don't have an information problem",
-    body: "You already know what to do. Niyyah OS exists to help you execute what you know, not to teach you something new.",
+    k: "Not more information",
+    title: "You already know how to trade.",
+    body: "You still revenge trade, overtrade, and move stops. That isn't a knowledge gap. It's a self-awareness gap. We close it.",
   },
   {
-    title: "Calm by design",
-    body: "No stre­aks engineered for addiction. No dopamine loops. No noise. The experience encourages reflection, not stimulation.",
+    k: "Calm by design",
+    title: "A diagnosis, not a dashboard.",
+    body: "No streaks engineered for addiction, no noise. One deep read of who you are as a trader — and a plan to change it.",
   },
 ];
 
@@ -32,71 +35,73 @@ export default function LandingPage() {
         <Logo />
         <nav className="flex items-center gap-2">
           <Link href="/login">
-            <Button variant="quiet" size="sm">
-              Sign in
-            </Button>
+            <Button variant="quiet" size="sm">Sign in</Button>
           </Link>
-          <Link href="/signup">
-            <Button size="sm">Begin</Button>
+          <Link href="/demo">
+            <Button size="sm">View demo</Button>
           </Link>
         </nav>
       </header>
 
       {/* Hero */}
-      <section className="mx-auto max-w-reading px-6 pb-16 pt-16 text-center md:pt-24">
-        <p className="label mb-6">A behavioral operating system for traders</p>
-        <h1 className="font-serif text-display text-ink">
-          Trade your intention,
-          <br />
-          not your impulse.
+      <section className="relative mx-auto max-w-reading px-6 pb-20 pt-14 text-center md:pt-24">
+        <div className="mb-7 flex justify-center">
+          <Pill tone="gold">A premium behavioral diagnosis for traders</Pill>
+        </div>
+        <h1 className="font-serif text-hero text-ink text-balance">
+          Understand why you
+          <br className="hidden sm:block" /> keep <span className="text-gradient">sabotaging</span> yourself.
         </h1>
-        <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted">
-          Most traders don&apos;t fail because they lack knowledge. They fail
-          because they can&apos;t execute what they already know. Niyyah OS is
-          built for that gap — discipline, self-awareness, and accountability.
+        <p className="mx-auto mt-7 max-w-xl text-lg leading-relaxed text-muted text-pretty">
+          Niyyah OS reads how you actually behave under pressure and hands you a
+          personal diagnosis — your archetype, your blind spots, the nafs beneath
+          your mistakes, and a 30-day plan to change them.
         </p>
         <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
           <Link href="/demo">
             <Button size="lg">Explore the live demo</Button>
           </Link>
           <Link href="/signup">
-            <Button variant="secondary" size="lg">
-              Take the assessment
-            </Button>
+            <Button variant="secondary" size="lg">Take the assessment</Button>
           </Link>
         </div>
         <p className="mt-5 text-sm text-faint">
-          The demo needs no sign-up. No charts. No signals. No PnL. Just behavior.
+          No sign-up to preview. No charts. No signals. No PnL. Just you.
         </p>
       </section>
 
-      {/* Principles */}
-      <section className="mx-auto max-w-6xl px-6 py-12">
+      {/* Pillars */}
+      <section className="mx-auto max-w-6xl px-6 py-10">
         <div className="grid gap-5 md:grid-cols-3">
-          {PRINCIPLES.map((p) => (
-            <div key={p.title} className="card p-7">
-              <h2 className="font-serif text-xl text-ink">{p.title}</h2>
+          {PILLARS.map((p) => (
+            <div
+              key={p.k}
+              className="group rounded-3xl border border-line bg-surface p-7 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-lift"
+            >
+              <p className="label mb-4 text-gold-ink/70">{p.k}</p>
+              <h2 className="font-serif text-xl leading-snug text-ink">{p.title}</h2>
               <p className="mt-3 text-[15px] leading-relaxed text-muted">{p.body}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* The loop */}
+      {/* The flow */}
       <section className="mx-auto max-w-reading px-6 py-16">
-        <p className="label mb-3 text-center">The entire product loop</p>
-        <h2 className="text-center font-serif text-title text-ink">
-          One quiet rhythm, repeated.
-        </h2>
-        <ol className="mt-10 space-y-1">
-          {LOOP.map(([title, body], i) => (
-            <li key={title} className="flex gap-5 rounded-2xl px-4 py-4 hover:bg-sand/40">
-              <span className="font-serif text-2xl text-accent/40 tabular-nums">
+        <p className="label mb-3 text-center">How it works</p>
+        <h2 className="text-center font-serif text-title text-ink">One assessment. One diagnosis. One plan.</h2>
+        <ol className="mt-12 space-y-2">
+          {STEPS.map(([title, body], i) => (
+            <li
+              key={title}
+              className="flex gap-5 rounded-2xl px-5 py-5 transition-colors hover:bg-surface"
+            >
+              <span className="font-serif text-3xl tabular-nums text-gold/50">
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <div>
+              <div className="pt-1">
                 <h3 className="font-medium text-ink">{title}</h3>
-                <p className="mt-0.5 text-[15px] leading-relaxed text-muted">{body}</p>
+                <p className="mt-1 text-[15px] leading-relaxed text-muted">{body}</p>
               </div>
             </li>
           ))}
@@ -104,13 +109,14 @@ export default function LandingPage() {
       </section>
 
       {/* Closing */}
-      <section className="mx-auto max-w-reading px-6 pb-24 pt-8 text-center">
-        <blockquote className="font-serif text-2xl leading-snug text-ink md:text-3xl">
-          &ldquo;This platform understands why I keep sabotaging myself.&rdquo;
+      <section className="mx-auto max-w-reading px-6 pb-28 pt-6 text-center">
+        <blockquote className="font-serif text-3xl leading-snug text-ink text-balance md:text-4xl">
+          &ldquo;This understands me better
+          <br className="hidden sm:block" /> than I understand myself.&rdquo;
         </blockquote>
         <div className="mt-10">
-          <Link href="/signup">
-            <Button size="lg">Begin your transformation</Button>
+          <Link href="/demo">
+            <Button size="lg">See your diagnosis</Button>
           </Link>
         </div>
       </section>
@@ -118,7 +124,7 @@ export default function LandingPage() {
       <footer className="border-t border-line">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 text-sm text-faint md:flex-row">
           <Logo />
-          <p>Behavior is the product. Niyyah — نيّة — intention.</p>
+          <p>Niyyah — نيّة — intention. Behavior is the product.</p>
         </div>
       </footer>
     </main>

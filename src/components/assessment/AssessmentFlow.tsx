@@ -57,23 +57,26 @@ export function AssessmentFlow() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-reading flex-col px-5 py-8 md:py-12">
-      <div className="mb-10 flex items-center justify-between">
+      <div className="mb-8 flex items-center justify-between">
         <Logo />
-        <span className="text-sm tabular-nums text-faint">
-          {index + 1} / {total}
+        <span className="rounded-full border border-line bg-raised px-3 py-1 text-xs font-medium tabular-nums text-muted">
+          {index + 1} <span className="text-faint">/ {total}</span>
         </span>
       </div>
 
-      <div className="mb-10 h-1 w-full overflow-hidden rounded-full bg-sand">
+      <div className="mb-12 h-1.5 w-full overflow-hidden rounded-full bg-sand">
         <div
-          className="h-full rounded-full bg-accent transition-[width] duration-500 ease-out"
+          className="h-full rounded-full bg-gradient-to-r from-accent to-gold transition-[width] duration-500 ease-out"
           style={{ width: `${progress}%` }}
         />
       </div>
 
       <div key={question.id} className="flex flex-1 flex-col animate-fade-up">
-        <p className="label mb-4">{DIMENSION_LABELS[question.dimension]}</p>
-        <h1 className="font-serif text-2xl leading-snug text-ink md:text-3xl">
+        <p className="label mb-4 flex items-center gap-2">
+          <span className="h-1 w-1 rounded-full bg-gold" />
+          {DIMENSION_LABELS[question.dimension]}
+        </p>
+        <h1 className="font-serif text-2xl leading-snug text-ink text-balance md:text-[2rem]">
           {question.prompt}
         </h1>
 
@@ -83,22 +86,22 @@ export function AssessmentFlow() {
               key={value}
               onClick={() => choose(value)}
               className={cn(
-                "flex w-full items-center justify-between rounded-xl border px-5 py-4 text-left transition-all",
+                "group flex w-full items-center justify-between rounded-2xl border px-5 py-4 text-left transition-all duration-200",
                 current === value
-                  ? "border-accent bg-accent-soft text-accent-ink"
-                  : "border-line bg-surface text-ink hover:border-line-strong hover:bg-raised",
+                  ? "border-accent bg-accent-soft text-accent-ink shadow-soft"
+                  : "border-line bg-surface text-ink hover:border-line-strong hover:bg-raised hover:shadow-soft",
               )}
             >
               <span className="text-[15px]">{LIKERT_LABELS[value]}</span>
               <span
                 className={cn(
-                  "flex h-5 w-5 items-center justify-center rounded-full border",
-                  current === value ? "border-accent bg-accent" : "border-line-strong",
+                  "flex h-5 w-5 items-center justify-center rounded-full border transition-all",
+                  current === value
+                    ? "border-accent bg-accent"
+                    : "border-line-strong group-hover:border-ink/30",
                 )}
               >
-                {current === value ? (
-                  <span className="h-2 w-2 rounded-full bg-white" />
-                ) : null}
+                {current === value ? <span className="h-2 w-2 rounded-full bg-white" /> : null}
               </span>
             </button>
           ))}
@@ -111,7 +114,7 @@ export function AssessmentFlow() {
         </p>
       ) : null}
 
-      <div className="mt-10 flex items-center justify-between">
+      <div className="mt-12 flex items-center justify-between">
         <Button
           variant="quiet"
           onClick={() => setIndex((i) => Math.max(0, i - 1))}
