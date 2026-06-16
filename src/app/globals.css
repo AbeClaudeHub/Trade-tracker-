@@ -31,6 +31,32 @@ body {
   background: rgba(46, 74, 64, 0.14);
 }
 
+/* Refined, unobtrusive scrollbar */
+@media (pointer: fine) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: theme("colors.line-strong") transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: theme("colors.line-strong");
+    border: 3px solid theme("colors.canvas");
+    border-radius: 999px;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: theme("colors.faint");
+  }
+}
+
+/* Staggered entrance helper */
+.stagger > * {
+  opacity: 0;
+  animation: fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
 @layer components {
   .card {
     @apply rounded-2xl border border-line bg-surface shadow-soft;
@@ -70,6 +96,16 @@ body {
   .text-gradient {
     @apply bg-clip-text text-transparent;
     background-image: linear-gradient(135deg, #2e4a40, #4f7a5e 55%, #9c7c4d);
+  }
+
+  /* Large intro paragraph */
+  .lead {
+    @apply text-lg leading-relaxed text-muted text-pretty;
+  }
+
+  /* Editorial section index numeral */
+  .section-index {
+    @apply font-serif text-sm tabular-nums text-gold/70;
   }
 }
 

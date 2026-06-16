@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth/AuthProvider";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
 import { Input, FieldLabel } from "@/components/ui/Field";
+import { RingMotif } from "@/components/ui/RingMotif";
 
 function friendlyError(err: unknown): string {
   const code = (err as { code?: string })?.code ?? "";
@@ -65,12 +66,13 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-6 py-12">
-      <Link href="/" className="mb-9">
+    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 py-12">
+      <RingMotif className="pointer-events-none absolute left-1/2 top-[-8rem] h-[30rem] w-[30rem] -translate-x-1/2 opacity-50" />
+      <Link href="/" className="relative mb-9">
         <Logo />
       </Link>
 
-      <div className="w-full max-w-sm rounded-3xl border border-line bg-surface p-8 shadow-lift">
+      <div className="relative w-full max-w-sm rounded-3xl border border-line bg-surface p-8 shadow-lift">
         <h1 className="font-serif text-title text-ink">
           {isSignup ? "Begin your diagnosis" : "Welcome back"}
         </h1>
