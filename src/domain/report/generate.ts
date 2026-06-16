@@ -6,9 +6,10 @@ import {
   type Report,
   type SabotageLoop,
 } from "@/domain/types";
-import { rankDimensions, scoreAssessment } from "@/domain/assessment/scoring";
+import { baselineScore, rankDimensions, scoreAssessment } from "@/domain/assessment/scoring";
 import { resolveArchetype } from "@/domain/archetypes/engine";
 import { ARCHETYPES } from "@/domain/archetypes/data";
+import { PLAYBOOKS } from "@/domain/archetypes/playbook";
 import {
   computeNafsScores,
   dominantNafs as topNafs,
@@ -65,18 +66,26 @@ export function generateReport(
     ].join("\n"),
   };
 
+  const disciplineScore = baselineScore(dimensionScores);
+  const play = PLAYBOOKS[primary];
+  const oneLineSummary = `You sabotage yourself by ${archetype.transformation.signatureBehavior.toLowerCase()} — driven by ${NAFS_LABELS[dominantNafs].toLowerCase()}.`;
+
   return {
     id: `report-${Date.now()}`,
     userId,
     generatedAt: new Date().toISOString(),
     responses,
     dimensionScores,
+    disciplineScore,
+    oneLineSummary,
     nafsScores,
     dominantNafs,
     secondaryNafs,
     archetypeId: primary,
     secondaryArchetypeId: secondary,
     loops,
+    playbook: play.playbook,
+    rulebook: play.rulebook,
     discord,
     blueprint: buildBlueprint(archetype),
   };

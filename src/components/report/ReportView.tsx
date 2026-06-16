@@ -12,29 +12,25 @@ import { Page } from "@/components/layout/Page";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
-import { DimensionBar } from "@/components/ui/ScoreDial";
+import { ScoreDial, DimensionBar } from "@/components/ui/ScoreDial";
 import { RingMotif } from "@/components/ui/RingMotif";
 import { BrandLoader } from "@/components/ui/BrandLoader";
 import { CopyButton } from "./CopyButton";
 import { cn } from "@/lib/utils";
 
-/* ── building blocks ───────────────────────────────────────────────────── */
+const CONTENTS = [
+  ["profile", "Profile"],
+  ["nafs", "Nafs"],
+  ["loops", "Loops"],
+  ["firewall", "Firewall"],
+  ["picture", "Full picture"],
+  ["room", "Your room"],
+  ["plan", "30-day plan"],
+];
 
-function Section({
-  index,
-  kicker,
-  title,
-  sub,
-  children,
-}: {
-  index: string;
-  kicker: string;
-  title: string;
-  sub?: string;
-  children: React.ReactNode;
-}) {
+function Section({ id, index, kicker, title, sub, children }: { id: string; index: string; kicker: string; title: string; sub?: string; children: React.ReactNode }) {
   return (
-    <section className="mt-14 first:mt-0">
+    <section id={id} className="mt-14 scroll-mt-24 first:mt-0">
       <div className="mb-7 flex items-start gap-4">
         <span className="section-index pt-1.5">{index}</span>
         <div>
@@ -83,9 +79,7 @@ function LoopFlow({ steps }: { steps: string[] }) {
         return (
           <li key={i} className="relative flex gap-4 pb-5 last:pb-0">
             {!last ? <span className="absolute left-[15px] top-8 h-[calc(100%-1.5rem)] w-px bg-gradient-to-b from-line-strong to-line" /> : null}
-            <span className={cn("z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-serif text-sm", last ? "bg-breach/15 text-breach" : "bg-sand text-ink")}>
-              {i + 1}
-            </span>
+            <span className={cn("z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-serif text-sm", last ? "bg-breach/15 text-breach" : "bg-sand text-ink")}>{i + 1}</span>
             <span className="pt-1 text-[15px] leading-snug text-ink">{step}</span>
           </li>
         );
@@ -105,8 +99,6 @@ function ScriptBlock({ title, text }: { title: string; text: string }) {
     </div>
   );
 }
-
-/* ── report ────────────────────────────────────────────────────────────── */
 
 export function ReportView() {
   const { user, profile } = useAuth();
@@ -139,27 +131,17 @@ export function ReportView() {
         }
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [user, unlocked]);
 
-  if (loading) {
-    return (
-      <Page>
-        <BrandLoader />
-      </Page>
-    );
-  }
+  if (loading) return <Page><BrandLoader /></Page>;
 
   if (!report) {
     return (
       <Page className="max-w-xl">
         <Card className="text-center">
           <h2 className="font-serif text-2xl text-ink">No report yet</h2>
-          <p className="mx-auto mt-3 max-w-md text-muted">
-            Your diagnosis is built from the behavioral assessment — about eight minutes, and the foundation of everything here.
-          </p>
+          <p className="mx-auto mt-3 max-w-md text-muted">Your diagnosis is built from the behavioral assessment — about eight minutes, and the foundation of everything here.</p>
           <Link href="/assessment" className="mt-7 inline-block"><Button size="lg">Take the assessment</Button></Link>
         </Card>
       </Page>
@@ -170,7 +152,6 @@ export function ReportView() {
   const secondary = report.secondaryArchetypeId ? getArchetype(report.secondaryArchetypeId) : null;
   const letter = archetype.name.replace("The ", "").charAt(0);
 
-  /* Paywall */
   if (!unlocked) {
     return (
       <Page className="max-w-xl">
@@ -182,7 +163,7 @@ export function ReportView() {
             <h1 className="mt-2 font-serif text-3xl text-ink">You are {archetype.name}.</h1>
             <p className="mt-2 text-muted">{archetype.tagline}</p>
             <p className="mx-auto mt-5 max-w-md text-[15px] leading-relaxed text-muted">
-              Your full diagnosis is complete — your blind spots, your self-sabotage loops, the nafs beneath your mistakes, and a personal 30-day blueprint to run inside your accountability room.
+              Your full diagnosis is complete — your Discipline Index, self-sabotage loops, the nafs beneath your mistakes, an emotional firewall, and a personal 30-day plan to run inside your accountability room.
             </p>
             <div className="mx-auto mt-6 rounded-2xl border border-gold-line/40 bg-surface/70 p-5 text-left">
               <p className="label mb-1.5">A glimpse</p>
@@ -200,10 +181,10 @@ export function ReportView() {
   const nafs = rankNafs(report.nafsScores);
   const maxNafs = Math.max(1, ...nafs.map((n) => n.score));
   const dominant = nafs[0]!;
+  const delta = report.previousDisciplineScore != null ? report.disciplineScore - report.previousDisciplineScore : null;
 
   return (
     <Page>
-      {/* action bar */}
       <div className="mb-6 flex items-center justify-between print:hidden">
         <p className="label flex items-center gap-2"><span className="h-1 w-1 rounded-full bg-gold" /> Your behavioral diagnosis</p>
         <div className="flex gap-2">
@@ -215,32 +196,56 @@ export function ReportView() {
       {/* COVER */}
       <Card className="grain relative overflow-hidden">
         <RingMotif className="absolute -right-20 -top-24 h-[28rem] w-[28rem] opacity-70" />
-        <div className="relative flex flex-col items-start gap-6 sm:flex-row sm:items-center">
-          <Crest letter={letter} size={104} />
+        <div className="relative grid gap-8 md:grid-cols-[1.4fr_1fr] md:items-center">
           <div>
-            <p className="label mb-2">Trader archetype</p>
-            <h1 className="font-serif text-display leading-[0.95] text-ink">{archetype.name}</h1>
-            <p className="mt-3 text-lg text-muted text-pretty">{archetype.tagline}</p>
+            <div className="flex items-center gap-5">
+              <Crest letter={letter} size={92} />
+              <div>
+                <p className="label mb-1.5">Trader archetype</p>
+                <h1 className="font-serif text-display leading-[0.95] text-ink">{archetype.name}</h1>
+              </div>
+            </div>
+            <p className="mt-5 font-serif text-xl leading-snug text-ink/90 text-balance">{report.oneLineSummary}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Pill tone="breach">Dominant nafs · {NAFS_LABELS[report.dominantNafs]}</Pill>
               {secondary ? <Pill tone="neutral">Secondary · {secondary.name}</Pill> : null}
             </div>
           </div>
+
+          {/* Discipline Index */}
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-line bg-raised/70 p-6 text-center">
+            <ScoreDial value={report.disciplineScore} label="Discipline Index" size={168} />
+            {delta != null ? (
+              <Pill tone={delta >= 0 ? "affirm" : "breach"} className="mt-4">
+                {delta >= 0 ? "↑" : "↓"} {Math.abs(delta)} since last assessment
+              </Pill>
+            ) : (
+              <p className="mt-4 max-w-[15rem] text-xs leading-relaxed text-faint">Your behavioral baseline. Retake in 30 days to measure how far you&apos;ve moved.</p>
+            )}
+          </div>
         </div>
+
         <div className="rule my-8" />
         <p className="relative max-w-3xl whitespace-pre-line text-[15px] leading-[1.8] text-ink/90 md:text-base">
           {report.ai?.interpretation ?? archetype.description}
         </p>
+
+        {/* contents */}
+        <div className="mt-7 flex flex-wrap gap-2 print:hidden">
+          {CONTENTS.map(([id, label]) => (
+            <a key={id} href={`#${id}`} className="rounded-full border border-line bg-surface px-3 py-1 text-xs text-muted transition-colors hover:border-line-strong hover:text-ink">
+              {label}
+            </a>
+          ))}
+        </div>
       </Card>
 
-      {/* 01 — PROFILE */}
-      <Section index="01" kicker="Behavioral profile" title="How you score across nine dimensions" sub="Higher means healthier behavior. Your lowest dimensions are where your archetype lives — and where the work begins.">
+      {/* 01 PROFILE */}
+      <Section id="profile" index="01" kicker="Behavioral profile" title="How you score across nine dimensions" sub="Higher means healthier behavior. Your lowest dimensions are where your archetype lives — and where the work begins.">
         <div className="grid gap-6 lg:grid-cols-3">
           <Card className="lg:col-span-1">
             <div className="space-y-4">
-              {dims.map((d) => (
-                <DimensionBar key={d.dimension} label={DIMENSION_LABELS[d.dimension]} value={d.score} tone={d.score < 45 ? "breach" : "accent"} />
-              ))}
+              {dims.map((d) => (<DimensionBar key={d.dimension} label={DIMENSION_LABELS[d.dimension]} value={d.score} tone={d.score < 45 ? "breach" : "accent"} />))}
             </div>
           </Card>
           <Card><List title="Strengths" items={archetype.strengths} tone="affirm" /></Card>
@@ -248,17 +253,15 @@ export function ReportView() {
         </div>
       </Section>
 
-      {/* 02 — NAFS */}
-      <Section index="02" kicker="Nafs analysis" title="The root beneath the mistake" sub="Trades are symptoms; the nafs is the source. Win these inner battles and the mistakes dissolve.">
+      {/* 02 NAFS */}
+      <Section id="nafs" index="02" kicker="Nafs analysis" title="The root beneath the mistake" sub="Trades are symptoms; the nafs is the source. Win these inner battles and the mistakes dissolve.">
         <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
           <Card variant="accent" className="grain relative flex flex-col justify-center overflow-hidden">
             <RingMotif withOrbit={false} className="absolute -right-10 -bottom-10 h-48 w-48 opacity-60" />
             <p className="label relative">Your dominant battle</p>
             <p className="relative mt-2 font-serif text-4xl text-ink">{NAFS_LABELS[dominant.category]}</p>
             <p className="relative mt-1 text-sm text-muted">Intensity {dominant.score} / 100</p>
-            {report.ai?.nafsNarrative ? (
-              <p className="relative mt-4 text-[15px] leading-relaxed text-ink/90">{report.ai.nafsNarrative}</p>
-            ) : null}
+            {report.ai?.nafsNarrative ? <p className="relative mt-4 text-[15px] leading-relaxed text-ink/90">{report.ai.nafsNarrative}</p> : null}
           </Card>
           <Card>
             <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
@@ -278,20 +281,29 @@ export function ReportView() {
         </div>
       </Section>
 
-      {/* 03 — LOOPS */}
-      <Section index="03" kicker="Self-sabotage" title="The loops keeping you stuck" sub="The exact cycles that repeat. Name them, and you can break them.">
+      {/* 03 LOOPS */}
+      <Section id="loops" index="03" kicker="Self-sabotage" title="The loops keeping you stuck" sub="The exact cycles that repeat. Name them, and you can break them.">
         <div className="grid gap-6 md:grid-cols-2">
-          {report.loops.map((loop) => (
-            <Card key={loop.title} variant="quiet">
-              <h3 className="label mb-5">{loop.title}</h3>
-              <LoopFlow steps={loop.steps} />
+          {report.loops.map((loop) => (<Card key={loop.title} variant="quiet"><h3 className="label mb-5">{loop.title}</h3><LoopFlow steps={loop.steps} /></Card>))}
+        </div>
+      </Section>
+
+      {/* 04 FIREWALL */}
+      <Section id="firewall" index="04" kicker="Emotional firewall" title="Your trigger → response playbook" sub="Decide your response before the moment arrives. When the trigger hits, you already know what to do.">
+        <div className="grid gap-4 md:grid-cols-3">
+          {report.playbook.map((p) => (
+            <Card key={p.trigger} variant="quiet" className="flex flex-col">
+              <p className="label mb-2 text-breach">When</p>
+              <p className="text-[15px] font-medium leading-snug text-ink">{p.trigger}</p>
+              <div className="my-3 flex items-center gap-2 text-gold"><span className="h-px flex-1 bg-gold-line/60" /><span className="text-xs">then</span><span className="h-px flex-1 bg-gold-line/60" /></div>
+              <p className="text-[15px] leading-relaxed text-ink/90">{p.response}</p>
             </Card>
           ))}
         </div>
       </Section>
 
-      {/* 04 — FULL PICTURE */}
-      <Section index="04" kicker="The full picture" title="Triggers, violations & root causes">
+      {/* 05 FULL PICTURE */}
+      <Section id="picture" index="05" kicker="The full picture" title="Triggers, violations & root causes">
         <div className="grid gap-6 sm:grid-cols-2">
           <Card><List title="Emotional triggers" items={archetype.emotionalTriggers} /></Card>
           <Card><List title="Common rule violations" items={archetype.commonMistakes} tone="breach" /></Card>
@@ -300,8 +312,8 @@ export function ReportView() {
         </div>
       </Section>
 
-      {/* 05 — DISCORD */}
-      <Section index="05" kicker="Your accountability room" title="How to put this to work in Discord" sub="Niyyah OS explains your behavior. Your room holds you to it. Here is exactly how to use it.">
+      {/* 06 ROOM + RULEBOOK */}
+      <Section id="room" index="06" kicker="Your accountability room" title="How to put this to work in Discord" sub="Niyyah OS explains your behavior. Your room holds you to it. Here is exactly how to use it.">
         <Card variant="accent">
           <div className="grid gap-5 lg:grid-cols-2">
             <ScriptBlock title="Daily check-in script" text={report.discord.dailyReportScript} />
@@ -313,44 +325,47 @@ export function ReportView() {
             <List title="Monitor & report" items={report.discord.monitorBehaviors} tone="breach" />
           </div>
         </Card>
+
+        <Card className="mt-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="label">Your personal rulebook</h3>
+            <span className="print:hidden"><CopyButton text={`My trading rules (${archetype.name}):\n` + report.rulebook.map((r) => `• ${r}`).join("\n")} label="Copy rulebook" /></span>
+          </div>
+          <ol className="space-y-3">
+            {report.rulebook.map((r, i) => (
+              <li key={r} className="flex items-start gap-3 text-[15px] leading-relaxed text-ink/90">
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-soft font-serif text-sm text-accent-ink">{i + 1}</span>
+                <span>{r}</span>
+              </li>
+            ))}
+          </ol>
+        </Card>
       </Section>
 
-      {/* 06 — BLUEPRINT */}
-      <Section index="06" kicker="The plan" title="Your 30-Day Discipline Blueprint" sub={report.ai?.blueprintIntro}>
-        <div className="mb-8 flex flex-col gap-2 rounded-2xl border border-gold-line/50 bg-gold-soft/40 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="label mb-1">Keystone commitment</p>
-            <p className="font-serif text-lg text-ink">{report.blueprint.keystoneCommitment}</p>
-          </div>
-          <Pill tone="gold">30 days</Pill>
-        </div>
-
-        {/* timeline */}
-        <ol className="relative space-y-5 pl-1">
-          {report.blueprint.weeks.map((w, i) => {
-            const last = i === report.blueprint.weeks.length - 1;
-            return (
-              <li key={w.week} className="relative flex gap-5">
-                <div className="flex flex-col items-center">
-                  <span className="z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-gold-line/60 bg-surface font-serif text-lg text-gradient shadow-soft">
-                    {w.week}
-                  </span>
-                  {!last ? <span className="mt-1 w-px flex-1 bg-gradient-to-b from-gold-line/70 to-line" /> : null}
+      {/* 07 PLAN */}
+      <Section id="plan" index="07" kicker="The plan" title="Your 30-Day Discipline Blueprint" sub={report.ai?.blueprintIntro}>
+        <Card variant="gold" className="grain relative overflow-hidden">
+          <RingMotif withOrbit={false} className="absolute -right-12 -top-12 h-52 w-52 opacity-50" />
+          <div className="relative">
+            <div className="mb-5 rounded-xl border border-gold-line/50 bg-surface/70 px-5 py-4">
+              <p className="label mb-1">Keystone commitment</p>
+              <p className="font-serif text-lg text-ink">{report.blueprint.keystoneCommitment}</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-4">
+              {report.blueprint.weeks.map((w) => (
+                <div key={w.week} className="rounded-xl border border-line bg-surface p-4">
+                  <p className="label mb-1">Week {w.week}</p>
+                  <p className="font-serif text-base text-ink">{w.theme}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted">{w.goal}</p>
                 </div>
-                <Card className="mb-1 flex-1">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-serif text-lg text-ink">{w.theme}</h3>
-                    <span className="label">Week {w.week}</span>
-                  </div>
-                  <p className="mt-2 text-[15px] font-medium leading-snug text-ink">{w.goal}</p>
-                  <p className="mt-3 text-sm leading-relaxed text-muted"><span className="font-medium text-ink/80">Daily —</span> {w.dailyPractice}</p>
-                  <p className="mt-1.5 text-sm leading-relaxed text-muted"><span className="font-medium text-ink/80">In your room —</span> {w.discordPrompt}</p>
-                  <p className="mt-3 flex items-center gap-2 text-xs text-gold-ink"><span className="h-1 w-1 rounded-full bg-gold" /> {w.milestone}</p>
-                </Card>
-              </li>
-            );
-          })}
-        </ol>
+              ))}
+            </div>
+            <div className="mt-6 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-[15px] text-ink/90">30 concrete daily missions, one a day, reported in your room.</p>
+              <Link href="/plan" className="print:hidden"><Button variant="gold">Open my 30-day plan →</Button></Link>
+            </div>
+          </div>
+        </Card>
       </Section>
 
       <div className="rule mx-auto my-12 max-w-xs" />

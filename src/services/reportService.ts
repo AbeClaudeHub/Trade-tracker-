@@ -15,6 +15,13 @@ export async function generateAndSaveReport(
 ): Promise<Report> {
   const report = generateReport(uid, responses);
 
+  // Capture progress vs the previous assessment, if any.
+  const previous = await getReport(uid);
+  if (previous) {
+    report.previousDisciplineScore = previous.disciplineScore ?? null;
+    report.previousArchetypeId = previous.archetypeId ?? null;
+  }
+
   if (isDemoMode()) {
     demo().report = report;
     demo().profile.archetypeId = report.archetypeId;

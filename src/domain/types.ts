@@ -178,6 +178,32 @@ export interface SabotageLoop {
   steps: string[];
 }
 
+// ─────────────────────────── Playbook & rulebook ─────────────────────────────
+
+export interface PlaybookEntry {
+  /** The moment / feeling that precedes a violation. */
+  trigger: string;
+  /** The pre-decided response — the "if this, then that". */
+  response: string;
+}
+
+// ────────────────────────────── 30-day plan ──────────────────────────────────
+
+export interface DayMission {
+  day: number; // 1–30
+  week: number; // 1–4
+  theme: string;
+  title: string;
+  action: string;
+  discordPrompt: string;
+}
+
+export interface PlanProgress {
+  startDate: string; // yyyy-MM-dd
+  completed: number[]; // completed day numbers
+  updatedAt: string;
+}
+
 // ─────────────────────────────── The report ──────────────────────────────────
 
 /**
@@ -191,6 +217,11 @@ export interface Report {
 
   responses: AssessmentResponses;
   dimensionScores: DimensionScores;
+  /** Overall behavioral health, 0–100 (higher = healthier). The headline. */
+  disciplineScore: number;
+  /** One-sentence plain-language summary of the diagnosis. */
+  oneLineSummary: string;
+
   nafsScores: NafsScores;
   dominantNafs: NafsCategory;
   secondaryNafs: NafsCategory | null;
@@ -199,8 +230,14 @@ export interface Report {
   secondaryArchetypeId: ArchetypeId | null;
 
   loops: SabotageLoop[];
+  playbook: PlaybookEntry[];
+  rulebook: string[];
   discord: DiscordPlan;
   blueprint: Blueprint;
+
+  /** Set when regenerated, to show progress since the last assessment. */
+  previousDisciplineScore?: number | null;
+  previousArchetypeId?: ArchetypeId | null;
 
   /** AI-personalised prose. Falls back to deterministic text when AI is off. */
   ai?: {

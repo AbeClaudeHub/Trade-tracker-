@@ -11,7 +11,8 @@ import { cn } from "@/lib/utils";
 
 const NAV: { href: string; label: string; icon: IconName; primary?: boolean }[] = [
   { href: "/report", label: "My Report", icon: "archetype", primary: true },
-  { href: "/assessment", label: "Reassess", icon: "daily", primary: true },
+  { href: "/plan", label: "My Plan", icon: "daily", primary: true },
+  { href: "/assessment", label: "Reassess", icon: "reflection", primary: true },
   { href: "/unlock", label: "Unlock", icon: "nafs", primary: true },
   { href: "/settings", label: "Settings", icon: "settings", primary: true },
 ];

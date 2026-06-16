@@ -2,10 +2,11 @@
  * Seeded in-memory store for demo mode — a fully-unlocked sample report so the
  * product can be explored (and sold) with no sign-up and no Firebase.
  */
-import type { Report, UserProfile } from "@/domain/types";
+import type { PlanProgress, Report, UserProfile } from "@/domain/types";
 import { generateReport } from "@/domain/report/generate";
 import type { AssessmentResponses, LikertValue } from "@/domain/types";
 import { ASSESSMENT_QUESTIONS } from "@/domain/assessment/questions";
+import { daysAgoKey } from "@/lib/dates";
 
 const DEMO_UID = "demo-sam";
 
@@ -28,6 +29,7 @@ function demoResponses(): AssessmentResponses {
 interface DemoData {
   profile: UserProfile;
   report: Report;
+  plan?: PlanProgress;
 }
 
 let DATA: DemoData | null = null;
@@ -55,7 +57,13 @@ function seed(): DemoData {
     entitlement: { unlocked: true, codeRedeemed: "DEMO", redeemedAt: new Date().toISOString() },
   };
 
-  return { profile, report };
+  const plan: PlanProgress = {
+    startDate: daysAgoKey(6),
+    completed: [1, 2, 3, 4, 5],
+    updatedAt: new Date().toISOString(),
+  };
+
+  return { profile, report, plan };
 }
 
 export function demo(): DemoData {

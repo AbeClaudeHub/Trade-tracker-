@@ -8,6 +8,7 @@ import { getDb } from "@/lib/firebase/client";
 export const paths = {
   user: (uid: string) => doc(getDb(), "users", uid),
   report: (uid: string) => doc(getDb(), "users", uid, "report", "current"),
+  plan: (uid: string) => doc(getDb(), "users", uid, "plan", "current"),
   licenseCodes: () => collection(getDb(), "licenseCodes"),
   licenseCode: (code: string) => doc(getDb(), "licenseCodes", code),
 };
