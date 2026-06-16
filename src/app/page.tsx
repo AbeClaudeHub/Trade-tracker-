@@ -3,6 +3,7 @@ import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { RingMotif } from "@/components/ui/RingMotif";
+import { Reveal } from "@/components/ui/Reveal";
 import { ReportPreview } from "@/components/marketing/ReportPreview";
 
 const STEPS = [
@@ -101,8 +102,9 @@ export default function LandingPage() {
       <section className="mx-auto max-w-6xl px-6 py-20">
         <div className="grid gap-6 md:grid-cols-3">
           {PILLARS.map((p, i) => (
-            <div
+            <Reveal
               key={p.k}
+              delay={i * 90}
               className="group relative flex flex-col rounded-3xl border border-line bg-surface p-7 shadow-soft transition-all duration-300 hover:-translate-y-1.5 hover:shadow-lift"
             >
               <div className="mb-5 flex items-center justify-between">
@@ -111,13 +113,13 @@ export default function LandingPage() {
               </div>
               <h2 className="font-serif text-xl leading-snug text-ink">{p.title}</h2>
               <p className="mt-3 text-[15px] leading-relaxed text-muted">{p.body}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </section>
 
       {/* Flow */}
-      <section className="mx-auto max-w-reading px-6 py-12">
+      <Reveal className="mx-auto max-w-reading px-6 py-12">
         <p className="label mb-3 text-center">How it works</p>
         <h2 className="text-center font-serif text-title text-ink">One assessment. One diagnosis. One plan.</h2>
         <ol className="mt-12 divide-y divide-line/70">
@@ -133,7 +135,7 @@ export default function LandingPage() {
             </li>
           ))}
         </ol>
-      </section>
+      </Reveal>
 
       {/* Closing */}
       <section className="relative mx-auto max-w-reading px-6 pb-32 pt-12 text-center">

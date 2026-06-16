@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { DimensionBar } from "@/components/ui/ScoreDial";
 import { RingMotif } from "@/components/ui/RingMotif";
+import { BrandLoader } from "@/components/ui/BrandLoader";
 import { CopyButton } from "./CopyButton";
 import { cn } from "@/lib/utils";
 
@@ -146,9 +147,7 @@ export function ReportView() {
   if (loading) {
     return (
       <Page>
-        <div className="flex justify-center py-24">
-          <div className="h-7 w-7 animate-spin rounded-full border-2 border-line border-t-accent" />
-        </div>
+        <BrandLoader />
       </Page>
     );
   }

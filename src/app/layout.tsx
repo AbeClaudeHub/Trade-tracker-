@@ -16,14 +16,35 @@ const serif = Fraunces({
   axes: ["opsz"],
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://niyyah-os.vercel.app";
+const DESCRIPTION =
+  "A premium behavioral diagnosis for traders. Discover your archetype, your blind spots, the nafs beneath your mistakes, and a personal 30-day plan to change them.";
+
 export const metadata: Metadata = {
-  title: "Niyyah OS — Trade your intention, not your impulse",
-  description:
-    "A behavioral transformation platform for traders. Build discipline, expose your patterns, and execute what you already know. Behavior is the product.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Niyyah OS — Understand why you keep sabotaging yourself",
+    template: "%s · Niyyah OS",
+  },
+  description: DESCRIPTION,
+  applicationName: "Niyyah OS",
+  keywords: ["trading psychology", "trader behavior", "discipline", "accountability", "behavioral diagnosis"],
+  openGraph: {
+    type: "website",
+    siteName: "Niyyah OS",
+    title: "Niyyah OS — Understand why you keep sabotaging yourself",
+    description: DESCRIPTION,
+    url: SITE_URL,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Niyyah OS — Understand why you keep sabotaging yourself",
+    description: DESCRIPTION,
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#F6F4EF",
+  themeColor: "#F4F1EA",
   width: "device-width",
   initialScale: 1,
 };

@@ -6,6 +6,7 @@ import { useEffect, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { Logo } from "@/components/ui/Logo";
 import { Icon, type IconName } from "./icons";
+import { BrandLoader } from "@/components/ui/BrandLoader";
 import { cn } from "@/lib/utils";
 
 const NAV: { href: string; label: string; icon: IconName; primary?: boolean }[] = [
@@ -42,11 +43,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   if (loading || !user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-line border-t-accent" />
-      </div>
-    );
+    return <BrandLoader fullscreen />;
   }
 
   const primary = NAV.filter((n) => n.primary).slice(0, 5);

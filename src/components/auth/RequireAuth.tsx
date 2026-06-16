@@ -4,6 +4,7 @@ import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { Logo } from "@/components/ui/Logo";
+import { BrandLoader } from "@/components/ui/BrandLoader";
 
 /** Guards standalone (full-screen) authed pages that live outside the app shell. */
 export function RequireAuth({ children }: { children: ReactNode }) {
@@ -29,11 +30,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   }
 
   if (loading || !user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-line border-t-accent" />
-      </div>
-    );
+    return <BrandLoader fullscreen />;
   }
 
   return <>{children}</>;
